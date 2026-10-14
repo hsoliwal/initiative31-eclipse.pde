@@ -1,3 +1,13 @@
+## Start exploring this PDE fork
+
+Learn how Eclipse plug-in tooling models dependencies and checks APIs, then follow an existing dependency-cycle regression test from source to a focused Maven command.
+
+**[Start here: concepts, fork lineage and test guide](docs/FORK_GUIDE.md)** · **[PDE command cheat sheet](docs/COMMAND_CHEATSHEET.md)**
+
+This repository is a fork of [swt-initiative31/eclipse.pde](https://github.com/swt-initiative31/eclipse.pde), originally from [eclipse-pde/eclipse.pde](https://github.com/eclipse-pde/eclipse.pde). The guide records the inherited source baseline and current build configuration without claiming a new fork-specific fix. Original upstream documentation follows unchanged.
+
+---
+
 Eclipse PDE - Plug-in Development Environment
 =====================================================
 
