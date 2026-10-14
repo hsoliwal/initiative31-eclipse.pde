@@ -1,3 +1,7 @@
+> **About this fork:** This is `hsoliwal/initiative31-eclipse.pde`, forked through [swt-initiative31/eclipse.pde](https://github.com/swt-initiative31/eclipse.pde) from [Eclipse PDE](https://github.com/eclipse-pde/eclipse.pde). PDE is plug-in development tooling, not the Initiative 31 SWT demonstrator.
+>
+> Start with the [fork contributor guide](docs/FORK_GUIDE.md) for repository navigation, source-verified build/test entry points, toolchain caveats, and contribution destinations. The upstream project introduction follows.
+
 Eclipse PDE - Plug-in Development Environment
 =====================================================
 
@@ -6,14 +10,14 @@ Thanks for your interest in this project.
 Project description:
 --------------------
 
-The PDE project the Eclipse tooling to develop plug-ins and OSGI bundles.  
+The PDE project provides the Eclipse tooling to develop plug-ins and OSGI bundles.  
 Website: https://projects.eclipse.org/projects/eclipse.pde
 
 How to contribute:
 --------------------
 Contributions to PDE are most welcome. There are many ways to contribute, 
 from entering high quality bug reports, to contributing code or documentation changes. 
-For a complete guide, see the [CONTRIBUTING](CONTRIBUTING.md) page on the team wiki.
+For the upstream contribution requirements, see [CONTRIBUTING.md](CONTRIBUTING.md). For this fork's source map and setup notes, see the [fork contributor guide](docs/FORK_GUIDE.md).
 
 [![Create Eclipse Development Environment for PDE](https://download.eclipse.org/oomph/www/setups/svg/PDE.svg)](
 https://www.eclipse.org/setups/installer/?url=https://raw.githubusercontent.com/eclipse-pde/eclipse.pde/master/releng/org.eclipse.pde.setup/PDEConfiguration.setup&show=true
@@ -37,7 +41,7 @@ Before your contribution can be accepted by the project, you need to create and 
 How to build on the command line
 --------------------------------
 
-You need Maven 3.3.1 or later installed. Then you can run the build via the following command:
+Use a Maven/JDK toolchain compatible with the checked-out Tycho extension and Eclipse Platform parent. The [build configuration guide](docs/FORK_GUIDE.md#read-the-build-configuration-before-choosing-a-toolchain) records this snapshot's configuration and explains parent resolution and UI-test prerequisites. After setup, run from the repository root:
 
 `mvn clean verify`
 
