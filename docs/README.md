@@ -87,3 +87,58 @@ A local test selection establishes only its executed cases. API baseline checks,
 target resolution, UI launches and performance claims require their own evidence.
 Preserve existing notices and API compatibility; consult [API Tools](API_Tools.md)
 and [CONTRIBUTING](../CONTRIBUTING.md) before proposing API changes.
+
+## Debugging exercise: the launch uses a different plug-in than expected
+
+A resolved target, a workspace model and a launch's selected bundle set are distinct.
+Use the existing launch tests to isolate the selection rule before blaming an OSGi
+runtime failure.
+
+1. Open [PluginBasedLaunchTest](../ui/org.eclipse.pde.ui.tests/src/org/eclipse/pde/ui/tests/launcher/PluginBasedLaunchTest.java).
+   Its fixtures build separate workspace and target-platform bundle maps, configure
+   a launch working copy, then assert the merged selection.
+2. Follow `testGetMergedBundleMap_mixedPluginsFromWorkspaceAndTarget_specificTargetVersion`.
+   It supplies multiple versions and selects workspace and target bundles explicitly.
+   Reproduce a report with the same dimensions: symbolic name, version, origin and
+   the launch selection, rather than only the project name.
+3. Compare the adjacent automatic-add test. It combines explicit selection,
+   `AUTOMATIC_ADD` and deselected workspace bundles; a checkbox change can alter the
+   effective set even when the target definition remains unchanged.
+4. Inspect `testGetMergedBundleMap_defaultLaunchWithAllPlugins_fragmentsForOtherEnvironmentExcluded`.
+   The fixture distinguishes host bundles, unfiltered fragments and fragments for
+   the current versus another OS. Record OS/window system/architecture when a native
+   fragment appears to be missing.
+5. Follow the test's helper to bundle selection/launch validation. Keep selection
+   assertions separate from actually starting a launched application.
+   [AllLauncherTests](../ui/org.eclipse.pde.ui.tests/src/org/eclipse/pde/ui/tests/launcher/AllLauncherTests.java)
+   identifies additional feature-based, migration, product-editor and validation
+   cases when the issue crosses those boundaries.
+6. For a regression, use the smallest fixture preserving the mismatch and include
+   the modified production bundle(s) in the reactor. If changing launching code,
+   selecting core alone will not test that changed implementation.
+
+For the existing selection tests, the source-grounded, unexecuted command is:
+
+```sh
+mvn verify -pl :org.eclipse.pde.core,:org.eclipse.pde.launching,:org.eclipse.pde.ui.tests -Pbuild-individual-bundles -Dtest=PluginBasedLaunchTest
+```
+
+### Model API boundaries and failure diagnosis
+
+[IPluginModelBase](../ui/org.eclipse.pde.core/src/org/eclipse/pde/core/plugin/IPluginModelBase.java)
+describes manifest-derived models that may be editable or read-only and may notify
+listeners. Disabling a model does not erase its data; consumers decide how to treat
+that state. A model handle therefore does not prove launch inclusion or editability.
+Its `@noimplement`/`@noextend` annotations constrain client implementations.
+
+| Symptom | Check first | Avoid this shortcut |
+| --- | --- | --- |
+| Old implementation launches | Workspace/target origin, explicit version and selected launch bundles | Assuming the newest workspace project always wins |
+| Native fragment omitted | Fragment host and environment filter | Removing the filter to make every platform resolve |
+| Model edit throws CoreException | Whether the model is editable | Mutating a target binary model as though it were workspace source |
+| API check fails after compilation | Usage restriction, compatibility or version/@since category in [API Tools](API_Tools.md) | Suppressing all API warnings |
+| Test process never starts | UI harness/display and target resolution, then reports | Reporting zero executed tests as a pass |
+
+Keep the minimal reproducer and selected-bundle evidence with the test report.
+Passing bundle-selection tests alone does not establish that the resulting
+application starts or works on every native platform.
