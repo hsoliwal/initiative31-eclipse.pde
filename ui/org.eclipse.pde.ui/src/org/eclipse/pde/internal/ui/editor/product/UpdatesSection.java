@@ -11,6 +11,7 @@
  * Contributors:
  *     Rapicorp Corporation - initial API and implementation
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.product;
 
@@ -307,8 +308,10 @@ public class UpdatesSection extends TableSection {
 	@Override
 	public void modelChanged(IModelChangedEvent e) {
 		// No need to call super, handling world changed event here
-		fRepositoryTable.setInput(getProduct());
-		fRepositoryTable.refresh();
+		if (fRepositoryTable.getInput() != getProduct()) {
+			fRepositoryTable.setInput(getProduct());
+		}
+		org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fRepositoryTable, e, o -> o);
 		updateButtons();
 		clearEditors();
 	}

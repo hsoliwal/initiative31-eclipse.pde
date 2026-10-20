@@ -1,0 +1,102 @@
+# Copyright (c) 2026 Synexia, Hitesh Soliwal (hsoliwal@gmail.com) and others.
+# SPDX-License-Identifier: Apache-2.0 OR EPL-2.0
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.synexia.openrewrite.platformviews.PdeSectionDeltas
+displayName: PDE form sections answer model events with deltas (pde-model adapter)
+description: >-
+  Each listed form section's modelChanged replaces its viewer.refresh() with M3ModelChangedDeltas.refresh(viewer,
+  event, row mapper): one delta (removals, insertions at the refreshed positions, label updates of the changed rows)
+  instead of a rebuild of the section's table. A setInput of the same input before it is skipped. WORLD_CHANGED keeps
+  the stock refresh. Sites from docs/m3/correction-sites FINAL_PASS_MODEL_LISTENER.tsv (DELTA_DEFECT, pde-model).
+recipeList:
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.plugin.LibrarySection]
+      methodName: modelChanged
+      statement: "fLibraryTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fLibraryTable, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.plugin.ExecutionEnvironmentSection]
+      methodName: modelChanged
+      statement: "fEETable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fEETable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ds.ui.editor.sections.DSPropertiesSection]
+      methodName: modelChanged
+      statement: "fPropertiesTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fPropertiesTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ds.ui.editor.sections.DSProvideSection]
+      methodName: modelChanged
+      statement: "fProvidesTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fProvidesTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ds.ui.editor.sections.DSReferenceSection]
+      methodName: modelChanged
+      statement: "fReferencesTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fReferencesTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.plugin.ExportPackageVisibilitySection]
+      methodName: modelChanged
+      statement: "fFriendViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fFriendViewer, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.feature.IncludedFeaturesSection]
+      methodName: modelChanged
+      statement: "fIncludesViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fIncludesViewer, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.plugin.RequiresSection]
+      methodName: modelChanged
+      statement: "fImportViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fImportViewer, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.product.AbstractProductContentSection]
+      methodName: modelChanged
+      statement: "tableViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(tableViewer, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.build.BuildClasspathSection]
+      methodName: modelChanged
+      statement: "fTableViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fTableViewer, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.build.RuntimeInfoSection]
+      methodName: modelChanged
+      statement: "fLibraryViewer.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fLibraryViewer, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.category.RepositoryReferenceSection]
+      methodName: modelChanged
+      statement: "fRepositoryTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fRepositoryTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.product.PropertiesSection]
+      methodName: modelChanged
+      statement: "fPropertiesTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fPropertiesTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.product.UpdatesSection]
+      methodName: modelChanged
+      statement: "fRepositoryTable.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fRepositoryTable, e, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.plugin.ExtensionsSection]
+      methodName: modelChanged
+      statement: "fExtensionTree.refresh();"
+      replacement: "org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fExtensionTree, event, o -> o);"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.category.RepositoryReferenceSection]
+      methodName: modelChanged
+      statement: "fRepositoryTable.setInput(getSite());"
+      replacement: "if (fRepositoryTable.getInput() != getSite()) {\n			fRepositoryTable.setInput(getSite());\n		}"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.product.PropertiesSection]
+      methodName: modelChanged
+      statement: "fPropertiesTable.setInput(getProduct());"
+      replacement: "if (fPropertiesTable.getInput() != getProduct()) {\n			fPropertiesTable.setInput(getProduct());\n		}"
+  - com.synexia.openrewrite.platformviews.M3ReplaceStatement:
+      declaringClasses: [org.eclipse.pde.internal.ui.editor.product.UpdatesSection]
+      methodName: modelChanged
+      statement: "fRepositoryTable.setInput(getProduct());"
+      replacement: "if (fRepositoryTable.getInput() != getProduct()) {\n			fRepositoryTable.setInput(getProduct());\n		}"

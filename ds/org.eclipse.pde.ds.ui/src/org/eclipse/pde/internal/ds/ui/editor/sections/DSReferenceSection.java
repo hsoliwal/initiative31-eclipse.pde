@@ -13,6 +13,7 @@
  *     EclipseSource Corporation - ongoing enhancements
  *     Rafael Oliveira Nobrega <rafael.oliveira@gmail.com> - bug 242028, 248226
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ds.ui.editor.sections;
 
@@ -374,14 +375,14 @@ public class DSReferenceSection extends TableSection implements
 		} else if (e.getChangeType() == IModelChangedEvent.INSERT) {
 			Object[] objects = e.getChangedObjects();
 			if (objects.length > 0) {
-				fReferencesTable.refresh();
+				org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fReferencesTable, e, o -> o);
 				fReferencesTable.setSelection(new StructuredSelection(
 						objects[objects.length - 1]));
 			}
 			updateButtons();
 			updateTitle();
 		} else {
-			fReferencesTable.refresh();
+			org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fReferencesTable, e, o -> o);
 			updateButtons();
 		}
 	}

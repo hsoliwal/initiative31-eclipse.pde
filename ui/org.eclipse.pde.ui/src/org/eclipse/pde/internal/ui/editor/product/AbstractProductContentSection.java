@@ -11,6 +11,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *     Hannes Wellmann - Unify and clean-up Product Editor's PluginSection and FeatureSection
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 
 package org.eclipse.pde.internal.ui.editor.product;
@@ -298,7 +299,7 @@ public abstract class AbstractProductContentSection<S extends AbstractProductCon
 			} // else, nothing to select
 
 		} else if (e.getChangeType() == IModelChangedEvent.CHANGE) {
-			tableViewer.refresh();
+			org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(tableViewer, e, o -> o);
 		}
 		updateButtons(false, true);
 	}

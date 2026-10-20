@@ -13,6 +13,7 @@
  *     Alexander Kurtakov <akurtako@redhat.com> - bug 415649
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487988
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.plugin;
 
@@ -646,7 +647,7 @@ public class RequiresSection extends TableSection implements IPluginModelListene
 					if (event.getChangeType() == IModelChangedEvent.INSERT) {
 						if (changedObjects.length > 0) {
 							// Refresh the viewer
-							fImportViewer.refresh();
+							org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fImportViewer, event, o -> o);
 							// Get the last import added to the viewer
 							IPluginImport lastImport = (IPluginImport) changedObjects[changedObjects.length - 1];
 							// Find the corresponding bundle object for the plug-in import

@@ -1,0 +1,12 @@
+# Copyright (c) 2026 Synexia, Hitesh Soliwal (hsoliwal@gmail.com) and others.
+# SPDX-License-Identifier: Apache-2.0 OR EPL-2.0
+# View template spec (brief rule 27) of a PDE form section: rows come from the editor model; the pde-model adapter
+# (org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas) answers IModelChangedEvent with one delta.
+view.id=org.eclipse.pde.internal.ui.editor.plugin.ExecutionEnvironmentSection
+element=ExecutionEnvironment
+source=pde-model
+lanes=order:int, name:label
+group=none
+sort=order
+presentation=table
+label=PDELabelProvider

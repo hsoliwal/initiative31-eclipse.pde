@@ -12,6 +12,7 @@
  *     IBM Corporation - initial API and implementation
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.build;
 
@@ -372,7 +373,7 @@ public class BuildClasspathSection extends TableSection {
 			if (changeObject instanceof IBuildEntry && ((IBuildEntry) changeObject).getName().equals(IBuildEntry.JARS_EXTRA_CLASSPATH)) {
 				Table table = fTableViewer.getTable();
 				int index = table.getSelectionIndex();
-				fTableViewer.refresh();
+				org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fTableViewer, event, o -> o);
 				int count = table.getItemCount();
 				if (index == -1 || index >= count || event.getOldValue() == null) {
 					index = count - 1;
