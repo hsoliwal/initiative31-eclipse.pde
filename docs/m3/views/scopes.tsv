@@ -1,0 +1,8 @@
+# view_id	paths
+org.eclipse.pde.ui.PluginsView	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/views/plugins
+org.eclipse.pde.ui.TargetPlatformState	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/views/target
+org.eclipse.pde.ui.DependenciesView	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/views/dependencies
+org.eclipse.pde.ui.FeaturesView	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/views/features
+org.eclipse.pde.runtime.RegistryBrowser	ui/org.eclipse.pde.runtime/src/org/eclipse/pde/internal/runtime/registry
+pde-manifest-editor-trees	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/editor/plugin ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/editor/TreeSection.java ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/editor/StructuredViewerSection.java ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/editor/TableSection.java
+pde-target-editor	ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/editor/targetdefinition ui/org.eclipse.pde.ui/src/org/eclipse/pde/internal/ui/shared/target
