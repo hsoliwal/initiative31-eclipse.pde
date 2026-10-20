@@ -1,0 +1,16 @@
+repo	module	pattern	main	test
+pde	ui	jface_refresh_all	233	0
+pde	ui	jface_setInput	206	0
+pde	e4tools	jface_setInput	114	0
+pde	apitools	jface_refresh_all	18	0
+pde	apitools	jface_setInput	17	0
+pde	e4tools	jface_refresh_all	17	0
+pde	ua	jface_setInput	12	0
+pde	ui	swt_removeAll	10	0
+pde	ds	jface_refresh_all	9	0
+pde	ds	jface_setInput	7	0
+pde	ui	swing_treeReload	7	0
+pde	ua	swt_clearAll	3	0
+pde	build	jface_setInput	2	0
+pde	ua	jface_refresh_all	2	0
+pde	ui	swt_clearAll	1	0
