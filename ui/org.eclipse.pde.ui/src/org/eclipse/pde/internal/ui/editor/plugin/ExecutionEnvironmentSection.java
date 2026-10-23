@@ -13,6 +13,7 @@
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487988
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
  *     Latha Patil (ETAS GmbH) - Issue 1178 Add 'Change' button to change a Plugin's required EE and classpath
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.plugin;
 
@@ -376,7 +377,7 @@ public class ExecutionEnvironmentSection extends TableSection {
 		} else if (e.getChangeType() == IModelChangedEvent.INSERT) {
 			Object[] objects = e.getChangedObjects();
 			if (objects.length > 0) {
-				fEETable.refresh();
+				org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fEETable, e, o -> o);
 				fEETable.setSelection(new StructuredSelection(objects[objects.length - 1]));
 			}
 			updateButtons();

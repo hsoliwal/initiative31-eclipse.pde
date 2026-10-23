@@ -12,6 +12,7 @@
  *     IBM Corporation - initial API and implementation
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.plugin;
 
@@ -670,7 +671,7 @@ public class LibrarySection extends TableSection implements IBuildPropertiesCons
 		Object changeObject = event.getChangedObjects()[0];
 		if (changeObject instanceof IPluginLibrary) {
 			if (event.getChangeType() == IModelChangedEvent.INSERT) {
-				fLibraryTable.refresh();
+				org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fLibraryTable, event, o -> o);
 			} else if (event.getChangeType() == IModelChangedEvent.REMOVE) {
 				fLibraryTable.remove(changeObject);
 			} else {

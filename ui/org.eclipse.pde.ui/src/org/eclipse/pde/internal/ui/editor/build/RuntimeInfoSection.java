@@ -11,6 +11,7 @@
  *  Contributors:
  *     IBM Corporation - initial API and implementation
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 
 package org.eclipse.pde.internal.ui.editor.build;
@@ -1006,7 +1007,7 @@ public class RuntimeInfoSection extends PDESection implements IBuildPropertiesCo
 				return;
 			}
 
-			fLibraryViewer.refresh();
+			org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fLibraryViewer, event, o -> o);
 			updateDirectionalButtons();
 		}
 	}

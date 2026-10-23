@@ -17,6 +17,7 @@
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
  *     Daniel Kruegler - #2025 - SVG icons not supported by extension point editor
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.plugin;
 
@@ -881,7 +882,7 @@ public class ExtensionsSection extends TreeSection implements IPropertyChangeLis
 		if (changeObject instanceof IPluginBase && event.getChangeType() == IModelChangedEvent.CHANGE && event.getChangedProperty().equals(IExtensions.P_EXTENSION_ORDER)) {
 			IStructuredSelection sel = fExtensionTree.getStructuredSelection();
 			IPluginExtension extension = (IPluginExtension) sel.getFirstElement();
-			fExtensionTree.refresh();
+			org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fExtensionTree, event, o -> o);
 			fExtensionTree.setSelection(new StructuredSelection(extension));
 			return;
 		}

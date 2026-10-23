@@ -15,6 +15,7 @@
  *     Simon Scholz <simon.scholz@vogella.com> - Bug 444808
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.feature;
 
@@ -375,7 +376,7 @@ public class IncludedFeaturesSection extends TableSection implements IFeatureMod
 		Object obj = e.getChangedObjects()[0];
 		if (obj instanceof IFeatureChild) {
 			if (e.getChangeType() == IModelChangedEvent.CHANGE) {
-				fIncludesViewer.refresh();
+				org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fIncludesViewer, e, o -> o);
 			} else if (e.getChangeType() == IModelChangedEvent.INSERT) {
 				fIncludesViewer.add(e.getChangedObjects());
 				if (e.getChangedObjects().length > 0) {

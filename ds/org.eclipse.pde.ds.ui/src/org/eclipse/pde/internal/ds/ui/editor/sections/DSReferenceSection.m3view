@@ -1,0 +1,12 @@
+# Copyright (c) 2026 Synexia, Hitesh Soliwal (hsoliwal@gmail.com) and others.
+# SPDX-License-Identifier: Apache-2.0 OR EPL-2.0
+# View template spec (brief rule 27) of a PDE form section: rows come from the editor model; the pde-model adapter
+# (org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas) answers IModelChangedEvent with one delta.
+view.id=org.eclipse.pde.internal.ds.ui.editor.sections.DSReferenceSection
+element=IDSReference
+source=pde-model
+lanes=order:int, name:label, interface:label, cardinality:byte, policy:byte
+group=none
+sort=order
+presentation=table
+label=DSLabelProvider

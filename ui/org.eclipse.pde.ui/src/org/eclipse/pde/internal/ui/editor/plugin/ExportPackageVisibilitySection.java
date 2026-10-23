@@ -13,6 +13,7 @@
  *     Benjamin Cabe <benjamin.cabe@anyware-tech.com> - bug 201572
  *     Lars Vogel <Lars.Vogel@vogella.com> - Bug 487943
  *     Martin Karpisek <martin.karpisek@gmail.com> - Bug 351356
+ *     Synexia - model events answered with one viewer delta (pde-model adapter M3ModelChangedDeltas)
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.plugin;
 
@@ -318,14 +319,14 @@ public class ExportPackageVisibilitySection extends TableSection implements IPar
 		}
 
 		if (event.getChangeType() == IModelChangedEvent.INSERT && event.getChangedObjects()[0] instanceof PackageFriend) {
-			fFriendViewer.refresh();
+			org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fFriendViewer, event, o -> o);
 			fFriendViewer.setSelection(new StructuredSelection(event.getChangedObjects()[0]), true);
 			fFriendViewer.getControl().setFocus();
 			return;
 		}
 
 		int index = fFriendViewer.getTable().getSelectionIndex();
-		fFriendViewer.refresh();
+		org.eclipse.pde.internal.ui.editor.m3.M3ModelChangedDeltas.refresh(fFriendViewer, event, o -> o);
 		fFriendViewer.getTable().setSelection(Math.min(index, fFriendViewer.getTable().getItemCount() - 1));
 	}
 

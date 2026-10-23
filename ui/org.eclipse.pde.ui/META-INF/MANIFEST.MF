@@ -22,6 +22,7 @@ Export-Package:
  org.eclipse.pde.internal.ui.editor.contentassist.display;x-internal:=true,
  org.eclipse.pde.internal.ui.editor.context;x-friends:="org.eclipse.pde.ds.ui,org.eclipse.pde.ua.ui",
  org.eclipse.pde.internal.ui.editor.feature;x-internal:=true,
+ org.eclipse.pde.internal.ui.editor.m3;x-friends:="org.eclipse.pde.ds.ui",
  org.eclipse.pde.internal.ui.editor.outline;x-internal:=true,
  org.eclipse.pde.internal.ui.editor.plugin;x-friends:="org.eclipse.pde.runtime,org.eclipse.pde.ds.ui,org.eclipse.pde.ua.ui",
  org.eclipse.pde.internal.ui.editor.plugin.rows;x-internal:=true,
