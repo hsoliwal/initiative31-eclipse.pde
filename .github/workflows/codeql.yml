@@ -10,4 +10,8 @@ on:
 
 jobs:
   callCodeQLworkflow:
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     uses: eclipse-platform/eclipse.platform.releng.aggregator/.github/workflows/codeQLworkflow.yml@master
