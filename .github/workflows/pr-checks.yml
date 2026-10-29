@@ -11,8 +11,13 @@ on:
 
 jobs:
   check-freeze-period:
+    permissions:
+      issues: read
     uses: eclipse-platform/eclipse.platform.releng.aggregator/.github/workflows/verifyFreezePeriod.yml@master
   check-merge-commits:
+    permissions:
+      contents: read
+      pull-requests: read
     uses: eclipse-platform/eclipse.platform.releng.aggregator/.github/workflows/checkMergeCommits.yml@master
   check-versions:
     uses: eclipse-platform/eclipse.platform.releng.aggregator/.github/workflows/checkVersions.yml@master
