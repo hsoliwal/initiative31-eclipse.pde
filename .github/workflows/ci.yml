@@ -11,6 +11,9 @@ on:
 
 jobs:
   check-dash-licenses:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: eclipse-dash/dash-licenses/.github/workflows/mavenLicenseCheck.yml@master
     with:
       projectId: eclipse.pde
