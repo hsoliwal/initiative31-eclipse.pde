@@ -16,9 +16,11 @@ package org.eclipse.pde.internal.core.util;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,6 +29,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.launching.IVMInstall;
+import org.eclipse.jdt.launching.IVMInstall2;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironment;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironmentsManager;
@@ -78,6 +81,16 @@ public class VMUtil {
 		return manager.getExecutionEnvironments();
 	}
 
+	/**
+	 * {@return the execution environments one can still compile against.}
+	 */
+	public static List<IExecutionEnvironment> getSupportedExecutionEnvironments() {
+		IExecutionEnvironmentsManager manager = JavaRuntime.getExecutionEnvironmentsManager();
+		Set<IExecutionEnvironment> supported = manager.getSupportedExecutionEnvironments();
+		return Arrays.stream(manager.getExecutionEnvironments())
+				.filter(ee -> supported.contains(ee) || isNewerThanSupportedByCompiler(ee)).toList();
+	}
+
 	public static IExecutionEnvironment getExecutionEnvironment(String id) {
 		IExecutionEnvironmentsManager manager = JavaRuntime.getExecutionEnvironmentsManager();
 		return manager.getEnvironment(id);
@@ -92,12 +105,17 @@ public class VMUtil {
 		return vmi.getName();
 	}
 
-	private static final Map<String, Double> JAVA_VERSION_OF_EE = Arrays.stream(getExecutionEnvironments())
-			.collect(Collectors.toMap(IExecutionEnvironment::getId, VMUtil::getJavaTargetVersion));
+	private static final int UNKNOWN_JAVA_RELEASE = -1;
+
+	private static final Map<String, Integer> JAVA_VERSION_OF_EE = Arrays.stream(getExecutionEnvironments())
+			.collect(Collectors.toMap(IExecutionEnvironment::getId, VMUtil::getJavaTargetRelease));
 
 	public static final Comparator<String> ASCENDING_EE_JAVA_VERSION = Comparator
-			.comparingDouble((String ee) -> JAVA_VERSION_OF_EE.getOrDefault(ee, 0.0))
+			.comparingInt((String ee) -> JAVA_VERSION_OF_EE.getOrDefault(ee, UNKNOWN_JAVA_RELEASE))
 			.thenComparing(Comparator.naturalOrder());
+
+	private static final int LATEST_SUPPORTED_JAVA_VERSION = parseJavaRelease(
+			JavaCore.getAllJavaSourceVersionsSupportedByCompiler().last());
 
 	public static double getJavaTargetVersion(IExecutionEnvironment ee) {
 		Properties properties = ee.getProfileProperties();
@@ -105,6 +123,60 @@ public class VMUtil {
 				? properties.get(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM)
 				: null;
 		return target instanceof String version ? Double.parseDouble(version) : 0.0;
+	}
+
+	private static int getJavaTargetRelease(IExecutionEnvironment ee) {
+		Properties properties = ee.getProfileProperties();
+		Object target = properties != null //
+				? properties.get(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM)
+				: null;
+		return target instanceof String version ? parseJavaRelease(version) : UNKNOWN_JAVA_RELEASE;
+	}
+
+	private static boolean isNewerThanSupportedByCompiler(IExecutionEnvironment ee) {
+		Map<String, String> options = ee.getComplianceOptions();
+		String compliance = options != null ? options.get(JavaCore.COMPILER_COMPLIANCE) : null;
+		return compliance != null && parseJavaRelease(compliance) > LATEST_SUPPORTED_JAVA_VERSION;
+	}
+
+	/**
+	 * Returns the Java release number of the given java version (potentially
+	 * having multiple elements).
+	 * <p>
+	 * For example, the following inputs produce the following results:
+	 * </p>
+	 * <ul>
+	 * <li>{@code 1.6} -> {@code 6}</li>
+	 * <li>{@code 1.8.0-321} -> {@code 8}</li>
+	 * <li>{@code 11} -> {@code 11}</li>
+	 * <li>{@code 25.0.1} -> {@code 25}</li>
+	 * </ul>
+	 *
+	 */
+	public static int parseJavaRelease(String version) {
+		int majorStart = version.startsWith("1.") ? 2 : 0; //$NON-NLS-1$
+		int majorEnd = version.indexOf(".", majorStart); //$NON-NLS-1$
+		try {
+			String releaseVersion = majorEnd < 0 ? version.substring(majorStart)
+					: version.substring(majorStart, majorEnd);
+			return Integer.parseInt(releaseVersion);
+		} catch (NumberFormatException e) {
+			return UNKNOWN_JAVA_RELEASE;
+		}
+	}
+
+	/**
+	 * Returns the Java release number of the given {@link IVMInstall} or
+	 * {@code -1} if unable to determine it.
+	 */
+	public static int getJavaRelease(IVMInstall vm) {
+		if (vm instanceof IVMInstall2 vmInstall) {
+			String javaVersion = vmInstall.getJavaVersion();
+			if (javaVersion != null) {
+				return parseJavaRelease(javaVersion);
+			}
+		}
+		return UNKNOWN_JAVA_RELEASE;
 	}
 
 }

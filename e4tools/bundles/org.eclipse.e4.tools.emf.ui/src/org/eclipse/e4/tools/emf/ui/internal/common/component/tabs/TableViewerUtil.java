@@ -16,6 +16,8 @@ package org.eclipse.e4.tools.emf.ui.internal.common.component.tabs;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
 
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.TableViewer;
@@ -28,9 +30,10 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 
-public class TableViewerUtil {
+public class TableViewerUtil extends TableViewerUtilListCompatibility {
 
 	// Sorts the column by the provider's text value
 	static class ColumnLabelSorter extends TableViewerUtil.AbstractInvertableTableSorter {
@@ -202,10 +205,21 @@ public class TableViewerUtil {
 	}
 
 	static public ArrayList<TableColumn> getColumnsInDisplayOrder(TableViewer viewer) {
-		final ArrayList<TableColumn> allCols = new ArrayList<>(Arrays.asList(viewer.getTable().getColumns()));
-		final int[] order = viewer.getTable().getColumnOrder();
-		allCols.sort((o1, o2) -> order[allCols.indexOf(o1)] - order[allCols.indexOf(o2)]);
-		return allCols;
+		final Table table = viewer.getTable();
+		final int[] order = table.getColumnOrder();
+		final ArrayList<TableColumn> columns = new ArrayList<>(order.length);
+		for (int index : order) {
+			columns.add(table.getColumn(index));
+		}
+		return columns;
+	}
+
+	static public void moveColumnToEnd(TableViewer viewer, TableColumn col) {
+		final Table table = viewer.getTable();
+		final int createIndex = table.indexOf(col);
+		final int[] order = IntStream.concat(Arrays.stream(table.getColumnOrder()).filter(i -> i != createIndex),
+				IntStream.of(createIndex)).toArray();
+		table.setColumnOrder(order);
 	}
 
 	static public int getVisibleColumnIndex(TableViewer tvResults2, TableColumn col) {
@@ -214,5 +228,12 @@ public class TableViewerUtil {
 			return -1;
 		}
 		return tvResults2.getTable().getColumnOrder()[createOrder];
+	}
+}
+/** Retains the upstream List-returning JVM descriptor for already compiled clients. */
+class TableViewerUtilListCompatibility {
+	static public List<TableColumn> getColumnsInDisplayOrder(TableViewer viewer) {
+		final Table table = viewer.getTable();
+		return Arrays.stream(table.getColumnOrder()).mapToObj(table::getColumn).toList();
 	}
 }

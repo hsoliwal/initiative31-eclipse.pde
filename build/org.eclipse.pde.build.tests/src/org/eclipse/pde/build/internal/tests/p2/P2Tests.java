@@ -13,11 +13,11 @@
 
 package org.eclipse.pde.build.internal.tests.p2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,11 +48,18 @@ import org.eclipse.equinox.p2.repository.metadata.IMetadataRepository;
 import org.eclipse.equinox.spi.p2.publisher.PublisherHelper;
 import org.eclipse.pde.build.internal.tests.Utils;
 import org.eclipse.pde.build.tests.BuildConfiguration;
+import org.eclipse.pde.build.tests.P2TestSuite;
 import org.eclipse.pde.internal.build.site.QualifierReplacer;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.Bundle;
 
 public class P2Tests extends P2TestCase {
+
+	@BeforeAll
+	static void checkP2TestsEnabled() {
+		P2TestSuite.setUp();
+	}
 
 	public void offP2SimpleProduct() throws Exception {
 		IFolder buildFolder = newTest("p2.SimpleProduct");
@@ -317,8 +324,8 @@ public class P2Tests extends P2TestCase {
 		IQueryResult<IInstallableUnit> result = metadata.query(QueryUtil.createIUQuery("new_category_1"), null);
 		IInstallableUnit iu = result.iterator().next();
 		assertNotNull(iu);
-		assertEquals(iu.getId(), "new_category_1");
-		assertEquals(iu.getVersion().toString(), "1.2.3.456");
+		assertEquals("new_category_1", iu.getId()); //$NON-NLS-1$
+		assertEquals("1.2.3.456", iu.getVersion().toString()); //$NON-NLS-1$
 	}
 
 	@Test
@@ -368,7 +375,7 @@ public class P2Tests extends P2TestCase {
 			// expected
 		}
 		if (fail) {
-			fail("Unexpected CU found");
+			fail("Unexpected CU found"); //$NON-NLS-1$
 		}
 	}
 
@@ -399,7 +406,7 @@ public class P2Tests extends P2TestCase {
 		File plugins = repo.getFolder("plugins").getLocation().toFile();
 		File[] bundles = plugins.listFiles((FilenameFilter) (dir, name) -> name.startsWith("org.junit_")
 				|| name.startsWith("org.eclipse.pde.build"));
-		assertTrue(bundles.length == 2);
+		assertEquals(2, bundles.length);
 		assertJarVerifies(bundles[0]);
 		assertJarVerifies(bundles[1]);
 	}
@@ -447,9 +454,9 @@ public class P2Tests extends P2TestCase {
 		assertTouchpoint(iu, "configure", "addProgramArg(programArg:-foo);");
 		try {
 			assertTouchpoint(iu, "configure", "addProgramArg(programArg:-vmargs);");
-			fail("vmargs as program arg");
+			fail("vmargs as program arg"); //$NON-NLS-1$
 		} catch (AssertionError e) {
-			assertEquals(e.getMessage(), "Action not found:addProgramArg(programArg:-vmargs);");
+			assertEquals(e.getMessage(), "Action not found:addProgramArg(programArg:-vmargs);"); //$NON-NLS-1$
 		}
 	}
 
@@ -630,8 +637,7 @@ public class P2Tests extends P2TestCase {
 		IFolder b = Utils.createFolder(buildFolder, "plugins/b");
 		IFolder c = Utils.createFolder(buildFolder, "plugins/c");
 
-		Utils.generateFeature(buildFolder, "F", null, new String[] { "a", "b;os=linux",
-				"b;os=win32", "c" });
+		Utils.generateFeature(buildFolder, "F", null, new String[] { "a", "b;os=linux", "b;os=win32", "c" });
 		Properties featureProperties = new Properties();
 		featureProperties.put("bin.includes", "feature.xml");
 		Utils.storeProperties(buildFolder.getFile("features/F/build.properties"), featureProperties);
@@ -685,8 +691,7 @@ public class P2Tests extends P2TestCase {
 		runBuild(buildFolder);
 
 		// now change A and recompile
-		Utils.generateFeature(buildFolder, "F", null,
-				new String[] { "a", "b;os=linux;optional=true", "c" });
+		Utils.generateFeature(buildFolder, "F", null, new String[] { "a", "b;os=linux;optional=true", "c" });
 		Utils.storeProperties(buildFolder.getFile("features/F/build.properties"), featureProperties);
 
 		code = new StringBuffer();
@@ -758,7 +763,7 @@ public class P2Tests extends P2TestCase {
 				buildFolder.getLocation().toOSString(), properties);
 
 		IArtifactRepository artifact = loadArtifactRepository(finalLocation);
-		assertEquals(artifact.getName(), "testRepoName"); // bug 274094
+		assertEquals("testRepoName", artifact.getName()); // bug 274094 //$NON-NLS-1$
 		assertLogContainsLine(buildFolder.getFile("log.log"), "Messages while mirroring artifact descriptors");
 		assertLogContainsLines(buildFolder.getFile("compare.log"),
 				new String[] { "canonical: org.eclipse.update.feature,F,1.0.0",

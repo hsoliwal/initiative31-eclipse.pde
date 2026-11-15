@@ -17,7 +17,6 @@ package org.eclipse.e4.tools.emf.ui.internal.imp;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.core.runtime.Assert;
@@ -43,7 +42,6 @@ import org.eclipse.e4.ui.workbench.UIEvents.ApplicationElement;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
 @SuppressWarnings("deprecation")
@@ -265,6 +263,7 @@ public class RegistryUtil {
 			part.setElementId(element.getAttribute(ID));
 			part.setLabel(element.getAttribute(NAME));
 			part.setIconURI(getIconURI(element, ICON));
+			part.setContributionURI(getContributionURI(element, CLASS));
 
 			final MToolBar toolBar = MMenuFactory.INSTANCE.createToolBar();
 			toolBar.setElementId(part.getElementId());
@@ -329,15 +328,13 @@ public class RegistryUtil {
 	 */
 	public static String[] getProvidingBundles(IExtensionRegistry registry, String extensionPoint, boolean isLive) {
 
-		final IExtensionLookup service = getService(IExtensionLookup.class, null);
-
-		if (service == null) {
+		final IExtension[] extensions = findExtensions(extensionPoint, isLive);
+		if (extensions == null) {
 			return new String[] { "No " + IExtensionLookup.class.getName() + " service found." }; //$NON-NLS-1$ //$NON-NLS-2$
 		}
 
 		final ArrayList<String> result = new ArrayList<>();
 
-		final IExtension[] extensions = service.findExtensions(extensionPoint, isLive);
 		for (final IExtension extension : extensions) {
 			final IConfigurationElement[] elements = extension.getConfigurationElements();
 			for (final IConfigurationElement element : elements) {
@@ -360,14 +357,13 @@ public class RegistryUtil {
 	public static IConfigurationElement[] getExtensions(IExtensionRegistry registry, RegistryStruct struct,
 			boolean isLive) {
 
-		final IExtensionLookup service = getService(IExtensionLookup.class, null);
-		if (struct == null || service == null) {
+		final IExtension[] extensions = struct == null ? null : findExtensions(struct.getExtensionPoint(), isLive);
+		if (extensions == null) {
 			return new IConfigurationElement[0];
 		}
 
 		final ArrayList<IConfigurationElement> result = new ArrayList<>();
 
-		final IExtension[] extensions = service.findExtensions(struct.getExtensionPoint(), isLive);
 		for (final IExtension extension : extensions) {
 			final IConfigurationElement[] elements = extension.getConfigurationElements();
 			for (final IConfigurationElement element : elements) {
@@ -397,16 +393,17 @@ public class RegistryUtil {
 		} else if (applicationElement == MPerspective.class) {
 			return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.perspectives", "perspective", NAME); //$NON-NLS-1$ //$NON-NLS-2$
 		} else if (applicationElement == MPart.class) {
+			if (HINT_EDITOR.equals(hint)) {
+				return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.editors", EDITOR, NAME); //$NON-NLS-1$
+			}
 			return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.views", "view", NAME); //$NON-NLS-1$ //$NON-NLS-2$
 		} else if (applicationElement == MHandler.class) {
 			return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.handlers", "handler", COMMAND_ID); //$NON-NLS-1$ //$NON-NLS-2$
 		} else if (applicationElement == MPartDescriptor.class) {
-			if (hint == HINT_EDITOR)
-			{
+			if (HINT_EDITOR.equals(hint)) {
 				return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.editors", EDITOR, NAME); //$NON-NLS-1$
 			}
-			if (hint == HINT_VIEW || hint == HINT_COMPAT_VIEW)
-			{
+			if (HINT_VIEW.equals(hint) || HINT_COMPAT_VIEW.equals(hint)) {
 				return new RegistryStruct(EMPTY_STRING, "org.eclipse.ui.views", "view", NAME); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 		}
@@ -414,18 +411,24 @@ public class RegistryUtil {
 		return null;
 	}
 
-	private static <T> T getService(Class<T> clazz, String filter) {
-
-		try {
-			final BundleContext context = FrameworkUtil.getBundle(RegistryUtil.class).getBundleContext();
-			Collection<ServiceReference<T>> references;
-			references = context.getServiceReferences(clazz, filter);
-			for (final ServiceReference<T> reference : references) {
-				return context.getService(reference);
-			}
-		} catch (final InvalidSyntaxException e) {
-			// FIXME log
+	/**
+	 * Returns the extensions of the given extension point, or <code>null</code>
+	 * if no {@link IExtensionLookup} service is registered.
+	 */
+	private static IExtension[] findExtensions(String extensionPoint, boolean isLive) {
+		final BundleContext context = FrameworkUtil.getBundle(RegistryUtil.class).getBundleContext();
+		final ServiceReference<IExtensionLookup> reference = context.getServiceReference(IExtensionLookup.class);
+		if (reference == null) {
+			return null;
 		}
-		return null;
+		final IExtensionLookup service = context.getService(reference);
+		if (service == null) {
+			return null;
+		}
+		try {
+			return service.findExtensions(extensionPoint, isLive);
+		} finally {
+			context.ungetService(reference);
+		}
 	}
 }

@@ -37,7 +37,7 @@ import org.eclipse.e4.tools.emf.ui.internal.common.component.ControlFactory.Text
 import org.eclipse.e4.tools.emf.ui.internal.common.component.dialogs.FeatureSelectionDialog;
 import org.eclipse.e4.tools.emf.ui.internal.common.component.dialogs.FindParentReferenceElementDialog;
 import org.eclipse.e4.tools.emf.ui.internal.common.component.tabs.empty.E;
-import org.eclipse.e4.tools.emf.ui.internal.common.component.virtual.VSnippetsEditor;
+import org.eclipse.e4.tools.emf.ui.internal.common.component.virtual.VirtualListSpecs;
 import org.eclipse.e4.ui.model.ModelXPathEvaluator;
 import org.eclipse.e4.ui.model.application.MApplication;
 import org.eclipse.e4.ui.model.application.MApplicationElement;
@@ -421,6 +421,7 @@ public class StringModelFragment extends AbstractComponentEditor<MStringModelFra
 			};
 
 			pickList.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
+			pickList.getList().setInput(E4Properties.elements().observeDetail(getMaster()));
 
 			pickList.setLabelProvider(new LabelProvider() {
 				@Override
@@ -509,6 +510,7 @@ public class StringModelFragment extends AbstractComponentEditor<MStringModelFra
 			context.dispose();
 			context = null;
 		}
+		super.dispose();
 	}
 
 	/**
@@ -524,10 +526,6 @@ public class StringModelFragment extends AbstractComponentEditor<MStringModelFra
 		if (list.size() > 0) {
 			pickList.setSelection(new StructuredSelection(list.get(0)));
 		}
-
-		// pickList.getList().refresh();
-
-		pickList.getList().setInput(E4Properties.elements().observeDetail(getMaster()));
 
 		// Update the possible actions
 		actions.clear();
@@ -627,7 +625,7 @@ public class StringModelFragment extends AbstractComponentEditor<MStringModelFra
 			// We must manage especially snippets (see bug 531219) No other solution ...
 			if ("snippets".equals(featurename)) { //$NON-NLS-1$
 				result = new ArrayList<>();
-				for (EClass c : VSnippetsEditor.SNIPPET_CHILDREN) {
+				for (EClass c : VirtualListSpecs.SNIPPETS.eClasses()) {
 					result.add(new FeatureClass(c.getName(), c));
 				}
 			} else {

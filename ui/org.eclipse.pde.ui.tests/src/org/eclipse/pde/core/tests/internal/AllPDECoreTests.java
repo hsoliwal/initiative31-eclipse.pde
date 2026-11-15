@@ -8,8 +8,10 @@ import org.junit.platform.suite.api.Suite;
 @SelectClasses({ //
 	DependencyManagerTest.class, //
 	DependencyLoopFinderTest.class, //
+	StaleDependencyResolutionTest.class, //
 	WorkspaceModelManagerTest.class, //
 	WorkspaceProductModelManagerTest.class, //
+	ModelManagerBackgroundInitializationTest.class, //
 })
 public class AllPDECoreTests {
 }

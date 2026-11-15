@@ -14,10 +14,10 @@ public class Messages extends NLS {
 
 	public static String CSSScratchPadPart_Apply;
 	public static String CSSScratchPadPart_Close;
-	public static String CSSScratchPadPart_Engine;
 	public static String CSSScratchPadPart_Error;
 	public static String CSSScratchPadPart_No_theme_engine_available;
-	public static String CSSScratchPadPart_Time_ms;
+	public static String CSSScratchPadPart_Skipped;
+	public static String CSSScratchPadPart_Summary;
 	public static String CssSpyPart_actual_values;
 	public static String CssSpyPart_All_shells;
 	public static String CssSpyPart_Bounds;
@@ -36,12 +36,14 @@ public class Messages extends NLS {
 	public static String CssSpyPart_CSS_Properties_;
 	public static String CssSpyPart_CSS_Rules;
 	public static String CssSpyPart_CSS_Selector;
+	public static String CssSpyPart_Collapse_all;
 	public static String CssSpyPart_declared_in_CSS;
 	public static String CssSpyPart_declared_in_CSS_rules;
 	public static String CssSpyPart_DISPOSED;
 	public static String CssSpyPart_Error;
 	public static String CssSpyPart_Error_fetching_property;
 	public static String CssSpyPart_Escape_to_dismiss;
+	public static String CssSpyPart_Expand_all;
 	public static String CssSpyPart_Follow_UI_Selection;
 	public static String CssSpyPart_Generates_CSS_rule_block_for_the_selected_widget;
 	public static String CssSpyPart_Highlight_matching_widgets;
@@ -63,4 +65,8 @@ public class Messages extends NLS {
 	public static String CssSpyPart_Widget_data;
 	public static String CssSpyPart_Widget_Skin_Class;
 	public static String CssSpyPart_Widget_Skin_ID;
+
+	// Retained for existing editor and tooling clients.
+	public static String CSSScratchPadPart_Engine;
+	public static String CSSScratchPadPart_Time_ms;
 }
