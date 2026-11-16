@@ -321,6 +321,19 @@ public class PDEModelUtility {
 		}
 	}
 
+	public static TextFileChange[] changesForModelModification(final ModelModification modification,
+			final IProgressMonitor monitor) {
+		final PDEFormEditor editor = getOpenEditor(modification);
+		if (editor != null) {
+			Display.getDefault().syncExec(() -> {
+				if (editor.isDirty()) {
+					editor.flushEdits();
+				}
+			});
+		}
+		return generateModelEdits(modification, monitor, false);
+	}
+
 	/**
 	 * Checks to see if any open editor is opened on the given file.
 	 *
@@ -344,18 +357,6 @@ public class PDEModelUtility {
 			}
 		}
 		return false;
-	}
-
-	public static TextFileChange[] changesForModelModication(final ModelModification modification, final IProgressMonitor monitor) {
-		final PDEFormEditor editor = getOpenEditor(modification);
-		if (editor != null) {
-			Display.getDefault().syncExec(() -> {
-				if (editor.isDirty()) {
-					editor.flushEdits();
-				}
-			});
-		}
-		return generateModelEdits(modification, monitor, false);
 	}
 
 	private static TextFileChange[] generateModelEdits(final ModelModification modification, final IProgressMonitor monitor, boolean performEdits) {
