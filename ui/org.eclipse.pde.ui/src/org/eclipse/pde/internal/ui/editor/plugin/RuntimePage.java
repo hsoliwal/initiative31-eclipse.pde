@@ -51,7 +51,7 @@ public class RuntimePage extends PDEFormPage {
 		form.getBody().setLayout(FormLayoutFactory.createFormGridLayout(false, 2));
 
 		if (isBundle()) {
-			mform.addPart(new ExportPackageSection(this, form.getBody()));
+			mform.addPart(ExportPackageSection.createTreePresentation(this, form.getBody()));
 			if (((ManifestEditor) getEditor()).isEquinox()) {
 				mform.addPart(new ExportPackageVisibilitySection(this, form.getBody()));
 			}

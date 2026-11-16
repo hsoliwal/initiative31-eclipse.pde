@@ -10,46 +10,156 @@
  *******************************************************************************/
 package org.eclipse.pde.ui.tests.search.dependencies;
 
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.addExportedPackage;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.addImportedPackage;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.addReexportedBundle;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.addRequiredBundle;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.buildProjects;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.createJavaPluginProject;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.createJavaSource;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.createManifestOnlyPluginProject;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.gatherUnusedDependencies;
+import static org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesTestUtils.gatherUnusedPackageImports;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IncrementalProjectBuilder;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.pde.core.plugin.IPluginImport;
-import org.eclipse.pde.core.plugin.IPluginModelBase;
-import org.eclipse.pde.core.plugin.PluginRegistry;
-import org.eclipse.pde.core.project.IBundleClasspathEntry;
-import org.eclipse.pde.core.project.IBundleProjectDescription;
-import org.eclipse.pde.core.project.IBundleProjectService;
-import org.eclipse.pde.core.project.IPackageExportDescription;
-import org.eclipse.pde.core.project.IRequiredBundleDescription;
-import org.eclipse.pde.internal.core.PDECore;
-import org.eclipse.pde.internal.ui.search.dependencies.GatherUnusedDependenciesOperation;
-import org.eclipse.pde.ui.tests.runtime.TestUtils;
 import org.eclipse.pde.ui.tests.util.ProjectUtils;
+import org.eclipse.pde.ui.tests.util.TargetPlatformUtil;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
-import org.osgi.framework.VersionRange;
 
 public class GatherUnusedDependenciesOperationTest {
 
 	@ClassRule
+	public static final TestRule RESTORE_TARGET_DEFINITION = TargetPlatformUtil.RESTORE_CURRENT_TARGET_DEFINITION_AFTER;
+	@ClassRule
 	public static final TestRule CLEAR_WORKSPACE = ProjectUtils.DELETE_ALL_WORKSPACE_PROJECTS_BEFORE_AND_AFTER;
+
+	/** Keeps the projects of one test case from interfering with the others. */
+	@Rule
+	public final TestRule clearCreatedProjects = ProjectUtils.DELETE_CREATED_WORKSPACE_PROJECTS_AFTER;
+
+	@BeforeClass
+	public static void setUpTargetPlatform() throws Exception {
+		// Tests refer to bundles of the running platform, so do not rely on the
+		// target definition another test class left behind.
+		TargetPlatformUtil.setRunningPlatformAsTarget();
+	}
+
+	/**
+	 * A dependency that only provides a type indirectly used as the return type
+	 * of a chained call, here IEclipseContext returned by MPart.getContext(),
+	 * must not be flagged as unused. The type is never named in the source, so
+	 * the search for source references cannot find it and the operation relies
+	 * on the analysis of the byte code.
+	 */
+	@Test
+	public void testDependencyUsedViaReturnTypeOfChainedCallIsNotFlaggedAsUnused() throws Exception {
+		String contextsBundle = "org.eclipse.e4.core.contexts";
+		String bundle = "chained.call.bundle";
+		IProject project = createJavaPluginProject(bundle);
+		addRequiredBundle(project, "org.eclipse.e4.ui.model.workbench");
+		addRequiredBundle(project, "org.eclipse.e4.ui.workbench");
+		addRequiredBundle(project, contextsBundle);
+		createJavaSource(project, bundle, "UsesContext", """
+				import org.eclipse.e4.ui.model.application.ui.basic.MPart;
+				import org.eclipse.e4.ui.workbench.modeling.EModelService;
+
+				public class UsesContext {
+					public EModelService getModelService(MPart part) {
+						return part.getContext().get(EModelService.class);
+					}
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(project);
+		assertFalse("Dependency to " + contextsBundle + " must not be flagged as unused "
+				+ "although its type is only used as return type of a chained call", unusedPlugins.contains(contextsBundle));
+	}
+
+	/**
+	 * Same as
+	 * {@link #testDependencyUsedViaReturnTypeOfChainedCallIsNotFlaggedAsUnused()}
+	 * with the types provided by bundles created in the test: the type of A is
+	 * only used as the return type of B.getA() in the chained call.
+	 */
+	@Test
+	public void testDependencyUsedViaReturnTypeOfChainedCallInTestBundlesIsNotFlaggedAsUnused() throws Exception {
+		// Bundle A: provides the type that is used without ever being named
+		String bundleA = "indirect.bundle.a";
+		String packageA = bundleA + ".pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, packageA);
+		createJavaSource(projectA, packageA, "A", """
+				public class A {
+					public void use() {
+					}
+				}
+				""");
+
+		// Bundle B: returns the type of A from a method
+		String bundleB = "indirect.bundle.b";
+		String packageB = bundleB + ".pkg";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addExportedPackage(projectB, packageB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, packageB, "B", """
+				public class B {
+					public %s.A getA() {
+						return null;
+					}
+				}
+				""".formatted(packageA));
+
+		// Bundle C: requires both and calls a method on the returned type
+		String bundleC = "indirect.bundle.c";
+		IProject projectC = createJavaPluginProject(bundleC);
+		addRequiredBundle(projectC, bundleA);
+		addRequiredBundle(projectC, bundleB);
+		createJavaSource(projectC, bundleC, "UsesA", """
+				import %s.B;
+
+				public class UsesA {
+					public void use(B b) {
+						b.getA().use();
+					}
+				}
+				""".formatted(packageB));
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectC);
+		assertFalse("Dependency to " + bundleA + " must not be flagged as unused "
+				+ "although its type is only used as return type of a chained call", unusedPlugins.contains(bundleA));
+	}
+
+	/**
+	 * A dependency whose packages are not referenced at all must be reported as
+	 * unused. Without this counterpart, the tests above would also pass if
+	 * every dependency were retained.
+	 */
+	@Test
+	public void testUnreferencedDependencyIsFlaggedAsUnused() throws Exception {
+		String contextsBundle = "org.eclipse.e4.core.contexts";
+		String bundle = "unreferenced.bundle";
+		IProject project = createJavaPluginProject(bundle);
+		addRequiredBundle(project, contextsBundle);
+		createJavaSource(project, bundle, "UsesNothing", """
+				public class UsesNothing {
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(project);
+		assertTrue("Unreferenced dependency to " + contextsBundle + " must be flagged as unused",
+				unusedPlugins.contains(contextsBundle));
+	}
 
 	@Test
 	public void testDirectlyUsedDependencyReexportedByOtherDependencyIsNotFlaggedAsUnused() throws Exception {
@@ -86,101 +196,353 @@ public class GatherUnusedDependenciesOperationTest {
 				unusedPlugins.contains(bundleC));
 	}
 
-	private static IProject createManifestOnlyPluginProject(String symbolicName) throws Exception {
-		IBundleProjectService service = acquireBundleProjectService();
-		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(symbolicName);
-		IBundleProjectDescription description = service.getDescription(project);
-		description.setSymbolicName(symbolicName);
-		description.setNatureIds(new String[] { IBundleProjectDescription.PLUGIN_NATURE });
-		description.apply(null);
-		return project;
-	}
-
-	private static IProject createJavaPluginProject(String symbolicName) throws Exception {
-		IBundleProjectService service = acquireBundleProjectService();
-		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(symbolicName);
-		IBundleProjectDescription description = service.getDescription(project);
-		description.setSymbolicName(symbolicName);
-		description.setNatureIds(new String[] { IBundleProjectDescription.PLUGIN_NATURE, JavaCore.NATURE_ID });
-		IBundleClasspathEntry classpathEntry = service.newBundleClasspathEntry(IPath.fromOSString("src"), null,
-				IPath.fromOSString("."));
-		description.setBundleClasspath(new IBundleClasspathEntry[] { classpathEntry });
-		description.apply(null);
-		return project;
-	}
-
-	private static void addExportedPackage(IProject project, String packageName) throws Exception {
-		IBundleProjectService service = acquireBundleProjectService();
-		IBundleProjectDescription description = service.getDescription(project);
-		IPackageExportDescription[] presentExports = description.getPackageExports();
-		IPackageExportDescription addedExport = service.newPackageExport(packageName, null, true, List.of());
-		description.setPackageExports(Stream
-				.concat(presentExports != null ? Arrays.stream(presentExports) : Stream.empty(), Stream.of(addedExport))
-				.toArray(IPackageExportDescription[]::new));
-		description.apply(null);
-	}
-
-	private static void addRequiredBundle(IProject project, String symbolicName) throws CoreException {
-		addRequiredBundle(project, symbolicName, false);
-	}
-
-	private static void addReexportedBundle(IProject project, String symbolicName) throws CoreException {
-		addRequiredBundle(project, symbolicName, true);
-	}
-
-	private static void addRequiredBundle(IProject project, String symbolicName, boolean reexported)
-			throws CoreException {
-		IBundleProjectService service = acquireBundleProjectService();
-		IBundleProjectDescription description = service.getDescription(project);
-		IRequiredBundleDescription[] presentBundles = description.getRequiredBundles();
-		IRequiredBundleDescription addedBundle = service.newRequiredBundle(symbolicName, (VersionRange) null, false,
-				reexported);
-		description.setRequiredBundles(Stream
-				.concat(presentBundles != null ? Arrays.stream(presentBundles) : Stream.empty(), Stream.of(addedBundle))
-				.toArray(IRequiredBundleDescription[]::new));
-		description.apply(null);
-	}
-
-	private static void createJavaSource(IProject project, String packageName, String typeName, String body)
-			throws CoreException {
-		IPath packagePath = IPath.fromOSString("src").append(packageName.replace('.', '/'));
-		IFolder packageFolder = project.getFolder(packagePath);
-		if (!packageFolder.exists()) {
-			IFolder parent = project.getFolder(IPath.fromOSString("src"));
-			for (String segment : packageName.split("\\.")) {
-				parent = parent.getFolder(segment);
-				if (!parent.exists()) {
-					parent.create(true, true, null);
+	@Test
+	public void testDependencyUsedFromPackageProvidedByBothBundlesIsNotFlaggedAsUnused() throws Exception {
+		// Bundle A: exports a package that bundle B provides as well
+		String bundleA = "common.bundle.a";
+		String commonPackage = "common.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
 				}
-			}
-		}
-		IFile javaFile = packageFolder.getFile(typeName + ".java");
-		String content = """
-				package %s;
+				""");
 
-				%s""".formatted(packageName, body);
-		javaFile.create(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), true, null);
+		// Bundle B: requires A and uses its API from within the common package,
+		// so that the reference requires no package import at all
+		String bundleB = "common.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, commonPackage, "B", """
+				public class B {
+					A field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertFalse("Dependency to bundle A must not be flagged as unused since it is only used from a package "
+				+ "that bundle B provides as well", unusedPlugins.contains(bundleA));
 	}
 
-	private static IBundleProjectService acquireBundleProjectService() {
-		return PDECore.getDefault().acquireService(IBundleProjectService.class);
+	@Test
+	public void testUnusedDependencyProvidingPackageProvidedByBothBundlesIsNotFlaggedAsUnused() throws Exception {
+		// Bundle A: exports a package that bundle B provides as well
+		String bundleA = "unused.bundle.a";
+		String commonPackage = "unused.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle B: requires A but only uses its own types of the common
+		// package, so that A is not required although the package is. Whether a
+		// type of that package comes from A or from B is invisible in the
+		// computed packages, so the dependency is deliberately retained.
+		String bundleB = "unused.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, commonPackage, "B1", """
+				public class B1 {
+				}
+				""");
+		createJavaSource(projectB, commonPackage, "B2", """
+				public class B2 {
+					B1 field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertFalse("Dependency to bundle A must not be flagged as unused although it is in fact unused: this "
+				+ "imprecision is accepted in exchange for never proposing to remove a dependency that is needed "
+				+ "because it is used from a package that bundle B provides as well",
+				unusedPlugins.contains(bundleA));
 	}
 
-	private static void buildProjects() throws CoreException {
-		ResourcesPlugin.getWorkspace().build(IncrementalProjectBuilder.FULL_BUILD, new NullProgressMonitor());
-		TestUtils.waitForJobs(GatherUnusedDependenciesOperationTest.class.getName(), 100, 10000);
+	@Test
+	public void testDependencyUsedViaInlinedConstantInPackageProvidedByBothBundlesIsNotFlaggedAsUnused()
+			throws Exception {
+		// Bundle A: exports a package that bundle B provides as well and that
+		// contains a compile-time constant
+		String bundleA = "constant.bundle.a";
+		String commonPackage = "constant.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+					public static final String NAME = "name";
+				}
+				""");
+
+		// Bundle B: requires A and uses only its constant, whose value the
+		// compiler inlines, so that the byte code retains no reference to A at
+		// all. Removing the dependency would thus break the compilation of B.
+		String bundleB = "constant.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, commonPackage, "B", """
+				public class B {
+					public String name() {
+						return A.NAME;
+					}
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertFalse("Dependency to bundle A must not be flagged as unused since its inlined constant is used",
+				unusedPlugins.contains(bundleA));
 	}
 
-	private static List<String> gatherUnusedDependencies(IProject project)
-			throws InvocationTargetException, InterruptedException {
-		IPluginModelBase model = PluginRegistry.findModel(project);
-		assertNotNull("Plug-in model for bundle " + project.getName() + " not found", model);
+	@Test
+	public void testDependencyUsedViaSecondaryTypeInPackageProvidedByBothBundlesIsNotFlaggedAsUnused()
+			throws Exception {
+		// Bundle A: exports a package that bundle B provides as well and that
+		// contains a secondary type next to the primary one
+		String bundleA = "secondary.bundle.a";
+		String commonPackage = "secondary.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+				}
 
-		GatherUnusedDependenciesOperation operation = new GatherUnusedDependenciesOperation(model);
-		operation.run(new NullProgressMonitor());
+				class SecondaryA {
+				}
+				""");
 
-		return operation.getList().stream().filter(IPluginImport.class::isInstance).map(IPluginImport.class::cast)
-				.map(IPluginImport::getId).toList();
+		// Bundle B: requires A and uses only its secondary type. The compiler
+		// permits that because it only considers the package name, although the
+		// separate class loaders would not permit it at runtime. The dependency
+		// is thus required to compile bundle B and must not be reported.
+		String bundleB = "secondary.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, commonPackage, "B", """
+				public class B {
+					SecondaryA field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertFalse("Dependency to bundle A must not be flagged as unused since only its secondary type is used",
+				unusedPlugins.contains(bundleA));
 	}
 
+	@Test
+	public void testDependencyUsedViaNestedTypeInPackageProvidedByBothBundlesIsNotFlaggedAsUnused() throws Exception {
+		// Bundle A: exports a package that bundle B provides as well and that
+		// contains a nested type
+		String bundleA = "nested.bundle.a";
+		String commonPackage = "nested.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+					public static class Nested {
+					}
+				}
+				""");
+
+		// Bundle B: requires A and uses only its nested type, which the byte
+		// code refers to as A$Nested while the Java model provides A
+		String bundleB = "nested.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, commonPackage, "B", """
+				public class B {
+					A.Nested field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertFalse("Dependency to bundle A must not be flagged as unused since only its nested type is used",
+				unusedPlugins.contains(bundleA));
+	}
+
+	@Test
+	public void testDependencyUsedViaMethodReturnTypeInPackageProvidedByBothBundlesIsNotFlaggedAsUnused()
+			throws Exception {
+		// Bundle A: exports a package that bundle C provides as well
+		String bundleA = "returntype.bundle.a";
+		String commonPackage = "returntype.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+					public void use() {
+					}
+				}
+				""");
+
+		// Bundle B: exports a method returning the type of bundle A
+		String bundleB = "returntype.bundle.b";
+		String packageB = bundleB + ".pkg";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addExportedPackage(projectB, packageB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, packageB, "B", """
+				public class B {
+					public %s.A provide() {
+						return null;
+					}
+				}
+				""".formatted(commonPackage));
+
+		// Bundle C: uses A's type only as the return type of B's method and
+		// from within the package that it provides as well, so that the usage
+		// appears neither in the sources nor in the computed packages
+		String bundleC = "returntype.bundle.c";
+		IProject projectC = createJavaPluginProject(bundleC);
+		addRequiredBundle(projectC, bundleA);
+		addRequiredBundle(projectC, bundleB);
+		createJavaSource(projectC, commonPackage, "C", """
+				public class C {
+					public void use() {
+						new %s.B().provide().use();
+					}
+				}
+				""".formatted(packageB));
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectC);
+		assertFalse("Dependency to bundle A must not be flagged as unused since its type is only used as the "
+				+ "return type of a method of bundle B", unusedPlugins.contains(bundleA));
+	}
+
+	@Test
+	public void testDependencyProvidingUsedTypeOnlyInNonExportedPackageIsFlaggedAsUnused() throws Exception {
+		// Bundle A: exports the common package and provides the used type
+		String bundleA = "internal.bundle.a";
+		String commonPackage = "internal.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle B: provides a type of the same name in the same package, but
+		// does not export that package, so that its type cannot be referred to
+		String bundleB = "internal.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		createJavaSource(projectB, commonPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle C: requires both and uses the type of A from within the common
+		// package. A is required before B, so that the type is resolved from the
+		// bundle that exports the package instead of yielding an access
+		// restriction.
+		String bundleC = "internal.bundle.c";
+		IProject projectC = createJavaPluginProject(bundleC);
+		addRequiredBundle(projectC, bundleA);
+		addRequiredBundle(projectC, bundleB);
+		createJavaSource(projectC, commonPackage, "C", """
+				public class C {
+					A field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectC);
+		assertTrue("Unused dependency to bundle B must be flagged as unused although it provides a type of the same "
+				+ "name in the same package as the used bundle A", unusedPlugins.contains(bundleB));
+		assertFalse("Dependency to bundle A must not be flagged as unused as it provides the used type",
+				unusedPlugins.contains(bundleA));
+	}
+
+	@Test
+	public void testUnusedDependencyExportingSuperPackageOfOwnPackageIsFlaggedAsUnused() throws Exception {
+		// Bundle A: exports a package of which bundle B provides a subpackage
+		String bundleA = "superpackage.bundle.a";
+		String exportedPackage = "superpackage.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, exportedPackage);
+		createJavaSource(projectA, exportedPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle B: requires A but provides only a subpackage of the package
+		// that A exports, which is an unrelated package and thus no reason to
+		// consider A used
+		String bundleB = "superpackage.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addRequiredBundle(projectB, bundleA);
+		createJavaSource(projectB, exportedPackage + ".sub", "B", """
+				public class B {
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPlugins = gatherUnusedDependencies(projectB);
+		assertTrue("Unused dependency to bundle A must be flagged as unused although bundle B provides a subpackage "
+				+ "of the package that bundle A exports", unusedPlugins.contains(bundleA));
+	}
+
+	@Test
+	public void testUnusedImportedPackageOfWhichOwnPackageIsSubpackageIsFlaggedAsUnused() throws Exception {
+		// Bundle A: exports the package that bundle B imports
+		String bundleA = "importedsuperpackage.bundle.a";
+		String importedPackage = "importedsuperpackage.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, importedPackage);
+		createJavaSource(projectA, importedPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle B: imports that package without using it and provides only a
+		// subpackage of it, which is an unrelated package and thus no reason to
+		// consider the import used
+		String bundleB = "importedsuperpackage.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addImportedPackage(projectB, importedPackage);
+		createJavaSource(projectB, importedPackage + ".sub", "B", """
+				public class B {
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPackages = gatherUnusedPackageImports(projectB);
+		assertTrue("Unused imported package must be flagged as unused although bundle B provides a subpackage of it",
+				unusedPackages.contains(importedPackage));
+	}
+
+	@Test
+	public void testImportedPackageUsedFromPackageProvidedByBothBundlesIsNotFlaggedAsUnused() throws Exception {
+		// Bundle A: exports a package that bundle B provides as well
+		String bundleA = "importedcommon.bundle.a";
+		String commonPackage = "importedcommon.pkg";
+		IProject projectA = createJavaPluginProject(bundleA);
+		addExportedPackage(projectA, commonPackage);
+		createJavaSource(projectA, commonPackage, "A", """
+				public class A {
+				}
+				""");
+
+		// Bundle B: imports the common package and uses its API from within its
+		// own part of that package, so that the reference requires no import
+		// statement and is thus invisible in the computed packages
+		String bundleB = "importedcommon.bundle.b";
+		IProject projectB = createJavaPluginProject(bundleB);
+		addImportedPackage(projectB, commonPackage);
+		createJavaSource(projectB, commonPackage, "B", """
+				public class B {
+					A field;
+				}
+				""");
+
+		buildProjects();
+		List<String> unusedPackages = gatherUnusedPackageImports(projectB);
+		assertFalse("Imported package must not be flagged as unused since it is only used from the part of it "
+				+ "that bundle B provides itself", unusedPackages.contains(commonPackage));
+	}
 }

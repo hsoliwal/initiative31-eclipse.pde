@@ -50,6 +50,9 @@ import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.layout.TableColumnLayout;
 import org.eclipse.jface.layout.TreeColumnLayout;
 import org.eclipse.jface.notifications.NotificationPopup;
+import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.JFaceResources;
+import org.eclipse.jface.resource.LocalResourceManager;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ColumnViewerEditor;
@@ -104,6 +107,8 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.Widget;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.css.CSSStyleDeclaration;
@@ -366,9 +371,7 @@ public class CssSpyPart {
 		if (decl != null) {
 			sb.append(MessageFormat.format("\n\n{0}\n", Messages.CssSpyPart_CSS_Properties_)); //$NON-NLS-1$
 			try {
-				if (decl != null) {
-					sb.append(decl.getCssText());
-				}
+				sb.append(decl.getCssText());
 			} catch (Exception e) {
 				sb.append(e);
 			}
@@ -508,11 +511,23 @@ public class CssSpyPart {
 		outer.setLayoutData(new GridData(GridData.FILL_BOTH));
 
 		Composite top = new Composite(outer, SWT.NONE);
-		GridLayoutFactory.swtDefaults().numColumns(3).applyTo(top);
+		GridLayoutFactory.swtDefaults().numColumns(4).applyTo(top);
 		cssSearchBox = new Text(top, SWT.SEARCH | SWT.ICON_SEARCH | SWT.ICON_CANCEL);
 		cssSearchBox.setMessage(Messages.CssSpyPart_CSS_Selector);
 		cssSearchBox.setToolTipText(Messages.CssSpyPart_Highlight_matching_widgets);
 		GridDataFactory.fillDefaults().grab(true, false).applyTo(cssSearchBox);
+
+		LocalResourceManager resources = new LocalResourceManager(JFaceResources.getResources(), top);
+		Bundle bundle = FrameworkUtil.getBundle(getClass());
+		ToolBar treeToolbar = new ToolBar(top, SWT.FLAT);
+		ToolItem expandAll = new ToolItem(treeToolbar, SWT.PUSH);
+		ToolItem collapseAll = new ToolItem(treeToolbar, SWT.PUSH);
+		expandAll.setImage(resources.create(ImageDescriptor.createFromURL(bundle.getEntry("/icons/expandall.svg")))); //$NON-NLS-1$
+		collapseAll.setImage(resources.create(ImageDescriptor.createFromURL(bundle.getEntry("/icons/collapseall.svg")))); //$NON-NLS-1$
+		expandAll.setToolTipText(Messages.CssSpyPart_Expand_all);
+		expandAll.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> widgetTreeViewer.expandAll()));
+		collapseAll.setToolTipText(Messages.CssSpyPart_Collapse_all);
+		collapseAll.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> widgetTreeViewer.collapseAll()));
 
 		followSelection = new Button(top, SWT.CHECK);
 		followSelection.setSelection(true);
@@ -978,7 +993,7 @@ public class CssSpyPart {
 				subMonitor.split(2);
 				processCSSSearch(subMonitor.split(8), matcher, element, results);
 			} catch (Exception e) {
-				System.out.println(e.toString());
+				System.err.println(e.toString());
 			}
 		}
 		monitor.done();
@@ -997,8 +1012,9 @@ public class CssSpyPart {
 		}
 		subMonitor.split(5);
 		for (int i = 0; i < children.getLength(); i++) {
-			processCSSSearch(subMonitor.split(5), matcher,
-					(CSSStylableElement) children.item(i), results);
+			if (children.item(i) instanceof CSSStylableElement child) {
+				processCSSSearch(subMonitor.split(5), matcher, child, results);
+			}
 		}
 	}
 

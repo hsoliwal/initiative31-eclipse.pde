@@ -92,8 +92,6 @@ public class Messages {
 	public static String FilteredContributionDialog_Searching;
 	public String AreaIconDialogEditor_Icon;
 	public String AreaIconDialogEditor_Enter_Text;
-	public String AbstractIconDialogWithHardcodedScope_Project;
-	public String AbstractIconDialogWithHardcodedScope_Workspace;
 	public String AbstractIconDialog_Icon_Name;
 	public String AbstractIconDialog_Type_To_Start_Search;
 	public static String ContributionURIValidator_Malformed_URI;
@@ -595,11 +593,6 @@ public class Messages {
 	public String VPerspectiveTrimEditor_TreeLabelDescription;
 	public String VPerspectiveTrimEditor_AddTrim;
 
-	public String AbstractIconDialog_IconName;
-	public String AbstractIconDialog_all_workspace_bundles;
-	public String AbstractIconDialog_current_project;
-	public String AbstractIconDialog_scope;
-
 	public static String AbstractIconDialogWithScopeAndFilter_details;
 	public static String AbstractIconDialogWithScopeAndFilter_icon;
 	public static String AbstractIconDialogWithScopeAndFilter_iconName;
@@ -839,4 +832,12 @@ public class Messages {
 	public String SideValue_Left;
 	public String SideValue_Right;
 	public String SideValue_Top;
+
+	// Compatibility fields retained for existing editor and dialog clients.
+	public String AbstractIconDialogWithHardcodedScope_Project;
+	public String AbstractIconDialogWithHardcodedScope_Workspace;
+	public String AbstractIconDialog_IconName;
+	public String AbstractIconDialog_all_workspace_bundles;
+	public String AbstractIconDialog_current_project;
+	public String AbstractIconDialog_scope;
 }

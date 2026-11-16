@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2005, 2017 IBM Corporation and others.
+ * Copyright (c) 2005, 2026 IBM Corporation and others.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
@@ -43,6 +43,7 @@ import org.eclipse.jdt.launching.AbstractVMInstall;
 import org.eclipse.jdt.launching.ExecutionArguments;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
 import org.eclipse.jdt.launching.IVMInstall;
+import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.pde.core.plugin.IPluginModelBase;
 import org.eclipse.pde.core.plugin.ModelEntry;
 import org.eclipse.pde.core.plugin.PluginRegistry;
@@ -53,12 +54,18 @@ import org.eclipse.pde.internal.core.PDECore;
 import org.eclipse.pde.internal.core.PDEPreferencesManager;
 import org.eclipse.pde.internal.core.TargetPlatformHelper;
 import org.eclipse.pde.internal.core.TracingOptionsManager;
+import org.eclipse.pde.internal.core.util.VMUtil;
 import org.eclipse.pde.internal.launching.ILaunchingPreferenceConstants;
 import org.eclipse.pde.internal.launching.PDELaunchingPlugin;
 import org.eclipse.pde.launching.IPDELauncherConstants;
 import org.osgi.framework.Bundle;
 
 public class LaunchArgumentsHelper {
+
+	/**
+	 * VM argument that enables native access for all code on the class-path.
+	 */
+	public static final String ENABLE_NATIVE_ACCESS_VM_ARGUMENT = "--enable-native-access=ALL-UNNAMED"; //$NON-NLS-1$
 
 	/**
 	 * Returns the location that will be used as the workspace when launching or
@@ -163,7 +170,7 @@ public class LaunchArgumentsHelper {
 		}
 
 		if (getAddSwtNonDisposalReportingPreference()) {
-			if (result.indexOf("-Dorg.eclipse.swt.graphics.Resource.reportNonDisposed") == -1) { //$NON-NLS-1$
+			if (!result.contains("-Dorg.eclipse.swt.graphics.Resource.reportNonDisposed")) { //$NON-NLS-1$
 				if (result.length() > 0) {
 					result += " "; //$NON-NLS-1$
 				}
@@ -171,7 +178,34 @@ public class LaunchArgumentsHelper {
 			}
 		}
 
+		if (isNativeAccessArgumentRequired() && !result.contains("--enable-native-access")) { //$NON-NLS-1$
+			if (result.length() > 0) {
+				result += " "; //$NON-NLS-1$
+			}
+			result += ENABLE_NATIVE_ACCESS_VM_ARGUMENT;
+		}
+
 		return result;
+	}
+
+	/**
+	 * Returns whether {@link #ENABLE_NATIVE_ACCESS_VM_ARGUMENT} should be part
+	 * of the initial VM arguments of a new launch configuration, which is the
+	 * case if the workspace default JRE is Java 24 or newer.
+	 * <p>
+	 * Starting with Java 24 (<a href="https://openjdk.org/jeps/472">JEP 472</a>)
+	 * the JVM prints warnings when code on the class-path uses JNI or the
+	 * Foreign Function &amp; Memory API without native access being enabled.
+	 * Every Eclipse application uses JNI (e.g. through SWT), so the warnings
+	 * would otherwise show up on each launch.
+	 * </p>
+	 */
+	public static boolean isNativeAccessArgumentRequired() {
+		if (JavaRuntime.getDefaultVMInstall() instanceof AbstractVMInstall install) {
+			String vmver = install.getJavaVersion();
+			return vmver != null && JavaCore.compareJavaVersions(vmver, JavaCore.VERSION_24) >= 0;
+		}
+		return false;
 	}
 
 	public static String getInitialProgramArguments() {
@@ -215,26 +249,17 @@ public class LaunchArgumentsHelper {
 			ModelEntry entry = PluginRegistry.findEntry("org.eclipse.jdt.debug"); //$NON-NLS-1$
 			if (entry != null) {
 				IVMInstall vmInstall = VMHelper.getVMInstall(config, plugins);
-				if (vmInstall instanceof AbstractVMInstall) {
-					String javaVersion = ((AbstractVMInstall) vmInstall).getJavaVersion();
-					String[] javaVersionSegments = javaVersion.split("\\."); //$NON-NLS-1$
-					if (javaVersionSegments.length >= 2) {
-						try {
-							if (Integer.parseInt(javaVersionSegments[0]) == 1 && Integer.parseInt(javaVersionSegments[1]) < 7) {
-								IPluginModelBase[] models = entry.getExternalModels();
-								for (IPluginModelBase model : models) {
-									File file = new File(model.getInstallLocation());
-									if (!file.isFile()) {
-										file = new File(file, "jdi.jar"); //$NON-NLS-1$
-									}
-									if (file.exists()) {
-										map.put(IJavaLaunchConfigurationConstants.ATTR_BOOTPATH_PREPEND, new String[] {file.getAbsolutePath()});
-										break;
-									}
-								}
-							}
-						} catch (NumberFormatException e) {
-							// ignored
+				int javaRelease = VMUtil.getJavaRelease(vmInstall);
+				if (-1 < javaRelease && javaRelease < 7) {
+					IPluginModelBase[] models = entry.getExternalModels();
+					for (IPluginModelBase model : models) {
+						File file = new File(model.getInstallLocation());
+						if (!file.isFile()) {
+							file = new File(file, "jdi.jar"); //$NON-NLS-1$
+						}
+						if (file.exists()) {
+							map.put(IJavaLaunchConfigurationConstants.ATTR_BOOTPATH_PREPEND, new String[] {file.getAbsolutePath()});
+							break;
 						}
 					}
 				}

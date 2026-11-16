@@ -14,16 +14,19 @@
 package org.eclipse.pde.ui.tests;
 
 import org.eclipse.pde.core.tests.internal.AllPDECoreTests;
-import org.eclipse.pde.core.tests.internal.classpath.ChainedReexportPerformanceTest;
+import org.eclipse.pde.core.tests.internal.classpath.ChainedReexportClasspathTest;
 import org.eclipse.pde.core.tests.internal.classpath.ClasspathResolutionTest;
 import org.eclipse.pde.core.tests.internal.classpath.ClasspathResolutionTest2;
-import org.eclipse.pde.core.tests.internal.classpath.RequiredPluginsClasspathContainerPerformanceTest;
+import org.eclipse.pde.core.tests.internal.classpath.CyclicReexportClasspathTest;
 import org.eclipse.pde.core.tests.internal.core.builders.BundleErrorReporterTest;
 import org.eclipse.pde.core.tests.internal.util.PDESchemaHelperTest;
+import org.eclipse.pde.core.tests.internal.util.VMUtilTest;
 import org.eclipse.pde.ui.tests.build.properties.AllValidatorTests;
 import org.eclipse.pde.ui.tests.classpathcontributor.ClasspathContributorTest;
 import org.eclipse.pde.ui.tests.classpathresolver.ClasspathResolverTest;
 import org.eclipse.pde.ui.tests.classpathupdater.ClasspathUpdaterTest;
+import org.eclipse.pde.ui.tests.editor.ExportPackageSectionTest;
+import org.eclipse.pde.ui.tests.editor.ProductInfoSectionTest;
 import org.eclipse.pde.ui.tests.ee.ExportBundleTests;
 import org.eclipse.pde.ui.tests.imports.AllImportTests;
 import org.eclipse.pde.ui.tests.launcher.AllLauncherTests;
@@ -38,6 +41,7 @@ import org.eclipse.pde.ui.tests.project.ProjectCreationTests;
 import org.eclipse.pde.ui.tests.runtime.AllPDERuntimeTests;
 import org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesOperationTest;
 import org.eclipse.pde.ui.tests.target.AllTargetTests;
+import org.eclipse.pde.ui.tests.util.PDELabelProviderTest;
 import org.eclipse.pde.ui.tests.views.log.AllLogViewTests;
 import org.eclipse.pde.ui.tests.wizards.AllNewProjectTests;
 import org.eclipse.ui.tests.smartimport.ProjectSmartImportTest;
@@ -62,10 +66,11 @@ import org.junit.platform.suite.api.Suite;
 	BundleRootTests.class, //
 	PluginRegistryTests.class, //
 	ClasspathResolverTest.class, //
-	RequiredPluginsClasspathContainerPerformanceTest.class, //
-	ChainedReexportPerformanceTest.class, //
+	CyclicReexportClasspathTest.class, //
+	ChainedReexportClasspathTest.class, //
 	ClasspathUpdaterTest.class, //
 	PDESchemaHelperTest.class, //
+	VMUtilTest.class, //
 	ClasspathContributorTest.class, //
 	DynamicPluginProjectReferencesTest.class, //
 	ClasspathResolutionTest.class, //
@@ -74,6 +79,9 @@ import org.junit.platform.suite.api.Suite;
 	AllPDECoreTests.class, //
 	ProjectSmartImportTest.class, //
 	GatherUnusedDependenciesOperationTest.class, //
+	PDELabelProviderTest.class, //
+	ProductInfoSectionTest.class, //
+	ExportPackageSectionTest.class, //
 })
 public class AllPDETests {
 

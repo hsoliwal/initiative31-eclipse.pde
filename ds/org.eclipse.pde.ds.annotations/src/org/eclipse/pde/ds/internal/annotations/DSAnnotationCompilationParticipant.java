@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012, 2021 Ecliptical Software Inc. and others.
+ * Copyright (c) 2012, 2026 Ecliptical Software Inc. and others.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 2.0
@@ -641,7 +641,7 @@ public class DSAnnotationCompilationParticipant extends CompilationParticipant {
 				continue;
 			}
 
-			if (canSkipFile(cu)) {
+			if (canSkipFile(file, cu)) {
 				markAsAbandoned(cu);
 				continue;
 			}
@@ -663,6 +663,12 @@ public class DSAnnotationCompilationParticipant extends CompilationParticipant {
 
 			processAnnotations(entry.getKey(), entry.getValue());
 		}
+	}
+
+	/** Keeps the compiler shortcut for this participant and the historical hook for subclasses. */
+	private boolean canSkipFile(BuildContext file, ICompilationUnit cu) {
+		return getClass() == DSAnnotationCompilationParticipant.class
+				? !file.hasAnnotations(COMPONENT_ANNOTATION) : canSkipFile(cu);
 	}
 
 	public boolean canSkipFile(ICompilationUnit cu) {

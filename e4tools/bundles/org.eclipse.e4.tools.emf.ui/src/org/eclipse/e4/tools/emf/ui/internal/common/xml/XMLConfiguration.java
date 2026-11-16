@@ -15,6 +15,7 @@ package org.eclipse.e4.tools.emf.ui.internal.common.xml;
 
 import org.eclipse.e4.tools.emf.ui.internal.ResourceProvider;
 import org.eclipse.e4.tools.services.IResourcePool;
+
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextDoubleClickStrategy;
 import org.eclipse.jface.text.TextAttribute;
@@ -24,15 +25,23 @@ import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
+import org.eclipse.ui.editors.text.SyntaxThemeConstants;
 
 public class XMLConfiguration extends SourceViewerConfiguration {
 	private XMLDoubleClickStrategy doubleClickStrategy;
 	private XMLTagScanner tagScanner;
 	private XMLScanner scanner;
 	private final IResourcePool pool;
+	private final boolean useThemeColors;
+
+	public XMLConfiguration() {
+		pool = null;
+		useThemeColors = true;
+	}
 
 	public XMLConfiguration(IResourcePool pool) {
 		this.pool = pool;
+		useThemeColors = false;
 	}
 
 	@Override
@@ -50,16 +59,17 @@ public class XMLConfiguration extends SourceViewerConfiguration {
 
 	protected XMLScanner getXMLScanner() {
 		if (scanner == null) {
-			scanner = new XMLScanner(pool);
-			scanner.setDefaultReturnToken(new Token(new TextAttribute(pool.getColorUnchecked(ResourceProvider.COLOR_DEFAULT))));
+			scanner = useThemeColors ? new XMLScanner() : new XMLScanner(pool);
+			// In theme mode the widget's own foreground comes from the editor preferences.
+			scanner.setDefaultReturnToken(new Token(new TextAttribute(useThemeColors ? null : pool.getColorUnchecked(ResourceProvider.COLOR_DEFAULT))));
 		}
 		return scanner;
 	}
 
 	protected XMLTagScanner getXMLTagScanner() {
 		if (tagScanner == null) {
-			tagScanner = new XMLTagScanner(pool);
-			tagScanner.setDefaultReturnToken(new Token(new TextAttribute(pool.getColorUnchecked(ResourceProvider.COLOR_TAG))));
+			tagScanner = useThemeColors ? new XMLTagScanner() : new XMLTagScanner(pool);
+			tagScanner.setDefaultReturnToken(new Token(new TextAttribute(useThemeColors ? XMLColors.get(SyntaxThemeConstants.TAG_COLOR) : pool.getColorUnchecked(ResourceProvider.COLOR_TAG))));
 		}
 		return tagScanner;
 	}
@@ -76,7 +86,7 @@ public class XMLConfiguration extends SourceViewerConfiguration {
 		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
 		reconciler.setRepairer(dr, IDocument.DEFAULT_CONTENT_TYPE);
 
-		NonRuleBasedDamagerRepairer ndr = new NonRuleBasedDamagerRepairer(new TextAttribute(pool.getColorUnchecked(ResourceProvider.COLOR_XML_COMMENT)));
+		NonRuleBasedDamagerRepairer ndr = new NonRuleBasedDamagerRepairer(new TextAttribute(useThemeColors ? XMLColors.get(SyntaxThemeConstants.COMMENT_COLOR) : pool.getColorUnchecked(ResourceProvider.COLOR_XML_COMMENT)));
 		reconciler.setDamager(ndr, XMLPartitionScanner.XML_COMMENT);
 		reconciler.setRepairer(ndr, XMLPartitionScanner.XML_COMMENT);
 
