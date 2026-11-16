@@ -31,6 +31,7 @@ import org.eclipse.pde.ui.tests.ee.ExportBundleTests;
 import org.eclipse.pde.ui.tests.imports.AllImportTests;
 import org.eclipse.pde.ui.tests.launcher.AllLauncherTests;
 import org.eclipse.pde.ui.tests.model.bundle.AllBundleModelTests;
+import org.eclipse.pde.ui.tests.model.schema.ExtensionInspectorTest;
 import org.eclipse.pde.ui.tests.model.xml.AllXMLModelTests;
 import org.eclipse.pde.ui.tests.nls.AllNLSTests;
 import org.eclipse.pde.ui.tests.preferences.AllPreferenceTests;
@@ -38,7 +39,9 @@ import org.eclipse.pde.ui.tests.project.BundleRootTests;
 import org.eclipse.pde.ui.tests.project.DynamicPluginProjectReferencesTest;
 import org.eclipse.pde.ui.tests.project.PluginRegistryTests;
 import org.eclipse.pde.ui.tests.project.ProjectCreationTests;
+import org.eclipse.pde.ui.tests.refactoring.PluginManifestChangeTest;
 import org.eclipse.pde.ui.tests.runtime.AllPDERuntimeTests;
+import org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesOperationExtensionsTest;
 import org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesOperationTest;
 import org.eclipse.pde.ui.tests.target.AllTargetTests;
 import org.eclipse.pde.ui.tests.util.BundleResourceLocatorTest;
@@ -82,6 +85,9 @@ import org.junit.platform.suite.api.Suite;
 	ProjectSmartImportTest.class, //
 	NestedProjectSmartImportTest.class, //
 	GatherUnusedDependenciesOperationTest.class, //
+	ExtensionInspectorTest.class, //
+	PluginManifestChangeTest.class, //
+	GatherUnusedDependenciesOperationExtensionsTest.class, //
 	PDELabelProviderTest.class, //
 	BundleResourceLocatorTest.class, //
 	ProductInfoSectionTest.class, //
