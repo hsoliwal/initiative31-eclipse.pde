@@ -348,6 +348,40 @@ public class OrganizeManifest implements IOrganizeManifestsSettings {
 		return set;
 	}
 
+	public static void addMissingExportVersions(IBundleModel bundle, boolean useFixedVersion,
+			boolean useBundleVersion) {
+		ExportPackageHeader header = (ExportPackageHeader) bundle.getBundle()
+				.getManifestHeader(Constants.EXPORT_PACKAGE);
+
+		if (header == null) {
+			return;
+		}
+
+		ExportPackageObject[] packages = header.getPackages();
+		String bundleVersion = bundle.getBundle().getHeader(Constants.BUNDLE_VERSION);
+
+		for (ExportPackageObject pkg : packages) {
+			String version = pkg.getVersion();
+
+			if (version == null || version.trim().isEmpty()) {
+				String newVersion = null;
+				if (useFixedVersion) {
+					newVersion = "1.0.0"; //$NON-NLS-1$
+				} else if (useBundleVersion && bundleVersion != null) {
+					newVersion = bundleVersion;
+				}
+				if (newVersion != null) {
+					pkg.setVersion(newVersion);
+				}
+			}
+		}
+
+		try {
+			// bundle.save(null);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	public static void removeUnneededLazyStart(IBundle bundle) {
 		if (!(bundle instanceof Bundle)) {
 			return;
@@ -387,7 +421,7 @@ public class OrganizeManifest implements IOrganizeManifestsSettings {
 			return new TextFileChange[0];
 		}
 
-		return PDEModelUtility.changesForModelModication(new ModelModification(propertiesFile) {
+		return PDEModelUtility.changesForModelModification(new ModelModification(propertiesFile) {
 			@Override
 			protected void modifyModel(IBaseModel model, IProgressMonitor monitor) throws CoreException {
 				if (!(model instanceof IBuildModel)) {

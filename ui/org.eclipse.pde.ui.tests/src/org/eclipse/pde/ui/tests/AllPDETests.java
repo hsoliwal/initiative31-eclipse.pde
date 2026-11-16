@@ -14,6 +14,7 @@
 package org.eclipse.pde.ui.tests;
 
 import org.eclipse.pde.core.tests.internal.AllPDECoreTests;
+import org.eclipse.pde.core.tests.internal.classpath.BundleClasspathEntryCacheTest;
 import org.eclipse.pde.core.tests.internal.classpath.ChainedReexportClasspathTest;
 import org.eclipse.pde.core.tests.internal.classpath.ClasspathResolutionTest;
 import org.eclipse.pde.core.tests.internal.classpath.ClasspathResolutionTest2;
@@ -31,6 +32,7 @@ import org.eclipse.pde.ui.tests.ee.ExportBundleTests;
 import org.eclipse.pde.ui.tests.imports.AllImportTests;
 import org.eclipse.pde.ui.tests.launcher.AllLauncherTests;
 import org.eclipse.pde.ui.tests.model.bundle.AllBundleModelTests;
+import org.eclipse.pde.ui.tests.model.schema.ExtensionInspectorTest;
 import org.eclipse.pde.ui.tests.model.xml.AllXMLModelTests;
 import org.eclipse.pde.ui.tests.nls.AllNLSTests;
 import org.eclipse.pde.ui.tests.preferences.AllPreferenceTests;
@@ -38,12 +40,16 @@ import org.eclipse.pde.ui.tests.project.BundleRootTests;
 import org.eclipse.pde.ui.tests.project.DynamicPluginProjectReferencesTest;
 import org.eclipse.pde.ui.tests.project.PluginRegistryTests;
 import org.eclipse.pde.ui.tests.project.ProjectCreationTests;
+import org.eclipse.pde.ui.tests.refactoring.PluginManifestChangeTest;
 import org.eclipse.pde.ui.tests.runtime.AllPDERuntimeTests;
+import org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesOperationExtensionsTest;
 import org.eclipse.pde.ui.tests.search.dependencies.GatherUnusedDependenciesOperationTest;
 import org.eclipse.pde.ui.tests.target.AllTargetTests;
+import org.eclipse.pde.ui.tests.util.BundleResourceLocatorTest;
 import org.eclipse.pde.ui.tests.util.PDELabelProviderTest;
 import org.eclipse.pde.ui.tests.views.log.AllLogViewTests;
 import org.eclipse.pde.ui.tests.wizards.AllNewProjectTests;
+import org.eclipse.ui.tests.smartimport.NestedProjectSmartImportTest;
 import org.eclipse.ui.tests.smartimport.ProjectSmartImportTest;
 import org.junit.platform.suite.api.SelectClasses;
 import org.junit.platform.suite.api.Suite;
@@ -75,11 +81,17 @@ import org.junit.platform.suite.api.Suite;
 	DynamicPluginProjectReferencesTest.class, //
 	ClasspathResolutionTest.class, //
 	ClasspathResolutionTest2.class, //
+		BundleClasspathEntryCacheTest.class, //
 	BundleErrorReporterTest.class, //
 	AllPDECoreTests.class, //
 	ProjectSmartImportTest.class, //
+	NestedProjectSmartImportTest.class, //
 	GatherUnusedDependenciesOperationTest.class, //
+	ExtensionInspectorTest.class, //
+	PluginManifestChangeTest.class, //
+	GatherUnusedDependenciesOperationExtensionsTest.class, //
 	PDELabelProviderTest.class, //
+	BundleResourceLocatorTest.class, //
 	ProductInfoSectionTest.class, //
 	ExportPackageSectionTest.class, //
 })

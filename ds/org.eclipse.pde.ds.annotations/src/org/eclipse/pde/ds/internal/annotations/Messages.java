@@ -181,6 +181,10 @@ public class Messages extends NLS {
 
 	public static String ComponentRenameParticipant_name;
 
+	public static String DSAnnotationPublicModifierMarkerResolutionGenerator_description;
+
+	public static String DSAnnotationPublicModifierMarkerResolutionGenerator_label;
+
 	public static String DSAnnotationCompilationParticipant_buildpathProblemMarker_location;
 
 	public static String DSAnnotationCompilationParticipant_buildpathProblemMarker_message;
@@ -216,6 +220,10 @@ public class Messages extends NLS {
 	public static String DSAnnotationPropertyPage_specVersionLabel_text;
 
 	public static String ProjectClasspathPreferenceChangeListener_jobName;
+
+	public static String UpgradeDSAnnotationsResolution_description;
+
+	public static String UpgradeDSAnnotationsResolution_label;
 
 	static {
 		// initialize resource bundle
