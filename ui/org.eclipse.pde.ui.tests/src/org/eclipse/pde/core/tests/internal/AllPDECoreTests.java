@@ -13,6 +13,7 @@ import org.junit.platform.suite.api.Suite;
 	WorkspaceProductModelManagerTest.class, //
 	ModelManagerBackgroundInitializationTest.class, //
 	PDEBuilderSchedulingRuleTest.class, //
+	XMLDefaultHandlerTest.class, //
 })
 public class AllPDECoreTests {
 }
