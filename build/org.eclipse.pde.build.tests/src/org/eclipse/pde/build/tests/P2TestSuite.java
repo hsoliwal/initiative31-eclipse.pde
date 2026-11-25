@@ -13,7 +13,7 @@ t SPDX-License-Identifier: EPL-2.0
 
 package org.eclipse.pde.build.tests;
 
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.eclipse.pde.build.internal.tests.p2.P2Tests;
 import org.eclipse.pde.build.internal.tests.p2.PublishingTests;
