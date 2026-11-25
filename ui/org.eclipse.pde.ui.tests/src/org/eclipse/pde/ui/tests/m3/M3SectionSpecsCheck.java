@@ -15,28 +15,50 @@
 package org.eclipse.pde.ui.tests.m3;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
-import org.eclipse.jface.viewers.m3.M3ViewSpec;
+import org.eclipse.jface.viewers.Viewer;
 
 /**
  * Parses every {@code .m3view} spec under the given source roots with the view
  * template's parser and prints one line per spec: its view id, adapter and
  * lanes, or the parse error. Exit code 1 when any spec is invalid.
  * <p>
+ * The parser, {@code org.eclipse.jface.viewers.m3.M3ViewSpec}, belongs to the
+ * M3 JFace of hsoliwal/eclipse.platform.ui and is bound reflectively, so this
+ * bundle also compiles against a stock JFace. Without it no spec can be
+ * checked: the check prints why and exits with code 2.
+ * </p>
+ * <p>
  * Usage: {@code M3SectionSpecsCheck <source-root>...}
  * </p>
  */
 public final class M3SectionSpecsCheck {
 
+	private static final String VIEW_SPEC_TYPE = "org.eclipse.jface.viewers.m3.M3ViewSpec"; //$NON-NLS-1$
+
 	private M3SectionSpecsCheck() {
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, ReflectiveOperationException {
+		Class<?> specType;
+		try {
+			specType = Class.forName(VIEW_SPEC_TYPE, false, Viewer.class.getClassLoader());
+		} catch (ClassNotFoundException e) {
+			System.out.println("UNAVAILABLE\t" + VIEW_SPEC_TYPE + " is not in this JFace; no spec was checked"); //$NON-NLS-1$ //$NON-NLS-2$
+			System.exit(2);
+			return;
+		}
+		Method parse = specType.getMethod("parse", String.class); //$NON-NLS-1$
+		Method viewId = specType.getMethod("viewId"); //$NON-NLS-1$
+		Method source = specType.getMethod("source"); //$NON-NLS-1$
+		Method lanes = specType.getMethod("lanes"); //$NON-NLS-1$
 		int bad = 0;
 		int good = 0;
 		for (String root : args) {
@@ -46,12 +68,15 @@ public final class M3SectionSpecsCheck {
 			}
 			for (Path spec : specs) {
 				try {
-					M3ViewSpec s = M3ViewSpec.parse(Files.readString(spec, StandardCharsets.UTF_8));
+					Object s = parse.invoke(null, Files.readString(spec, StandardCharsets.UTF_8));
 					good++;
-					System.out.println("OK\t" + s.viewId() + "\t" + s.source() + "\t" + s.lanes().size() + " lanes"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-				} catch (IllegalArgumentException e) {
+					System.out.println("OK\t" + viewId.invoke(s) + "\t" + source.invoke(s) + "\t" + ((List<?>) lanes.invoke(s)).size() + " lanes"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+				} catch (InvocationTargetException e) {
+					if (!(e.getCause() instanceof IllegalArgumentException invalid)) {
+						throw e;
+					}
 					bad++;
-					System.out.println("BAD\t" + spec + "\t" + e.getMessage()); //$NON-NLS-1$ //$NON-NLS-2$
+					System.out.println("BAD\t" + spec + "\t" + invalid.getMessage()); //$NON-NLS-1$ //$NON-NLS-2$
 				}
 			}
 		}

@@ -9,6 +9,8 @@ on:
 
 jobs:
   clean-code:
+    # Upstream bot automation (PDE_BOT_PAT); forks have neither the bot token nor its PRs.
+    if: github.repository == 'eclipse-pde/eclipse.pde'
     uses: eclipse-platform/eclipse.platform.releng.aggregator/.github/workflows/cleanCode.yml@master
     with:
       author: Eclipse PDE Bot <pde-bot@eclipse.org>
