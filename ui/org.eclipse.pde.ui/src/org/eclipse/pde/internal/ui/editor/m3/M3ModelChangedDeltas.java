@@ -14,6 +14,9 @@
  *******************************************************************************/
 package org.eclipse.pde.internal.ui.editor.m3;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.Arrays;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -27,13 +30,10 @@ import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.StructuredViewer;
 import org.eclipse.jface.viewers.ViewerFilter;
-import org.eclipse.jface.viewers.m3.M3ViewerDelta;
-import org.eclipse.jface.viewers.m3.M3Viewers;
 import org.eclipse.pde.core.IModelChangedEvent;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Item;
 import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.swt.widgets.Widget;
@@ -61,6 +61,14 @@ import org.eclipse.swt.widgets.Widget;
  * insert API cannot place a row at a filtered position), or a move. Each
  * fallback is counted by {@link Fallback} reason.
  * </p>
+ * <p>
+ * The viewer delta and its application ({@code M3ViewerDelta} and
+ * {@code M3Viewers} in {@code org.eclipse.jface.viewers.m3}) belong to the M3
+ * JFace of hsoliwal/eclipse.platform.ui. They are bound reflectively through
+ * the JFace class loader, so this bundle compiles against, and runs on, a
+ * stock JFace without that package; there every model event keeps the stock
+ * refresh ({@link Fallback#NO_VIEWER_DELTA}).
+ * </p>
  */
 public final class M3ModelChangedDeltas {
 
@@ -75,7 +83,9 @@ public final class M3ModelChangedDeltas {
 		/** a virtual widget, a dummy item or a collapsed parent: the shown rows are not all known */
 		ROWS_UNKNOWN,
 		/** rows changed places: needs a move operation in the viewer delta that keeps selection and expansion */
-		MOVE
+		MOVE,
+		/** the JFace in use has no {@code org.eclipse.jface.viewers.m3} viewer delta (a stock JFace) */
+		NO_VIEWER_DELTA
 	}
 
 	/** Full refreshes this adapter fell back to, per reason (differential and delta-gate counters). */
@@ -114,17 +124,19 @@ public final class M3ModelChangedDeltas {
 	 *               it, or to {@code null}
 	 */
 	public static void refresh(StructuredViewer viewer, IModelChangedEvent event, Function<Object, Object> rowOf) {
-		lastReason = Fallback.WORLD_CHANGED;
-		M3ViewerDelta delta = event.getChangeType() == IModelChangedEvent.WORLD_CHANGED ? null
-				: toDelta(viewer, parentOf(viewer, event, rowOf), rows(event, rowOf));
-		if (delta == null) {
-			Fallback reason = lastReason;
-			FALLBACKS[reason.ordinal()]++;
-			LOG.log(Level.FINE, () -> "stock refresh (" + reason + ") for " + viewer.getClass().getSimpleName()); //$NON-NLS-1$ //$NON-NLS-2$
-			viewer.refresh();
-		} else {
-			M3Viewers.apply(viewer, delta);
+		ViewerDeltaApi api = ViewerDeltaApi.INSTANCE;
+		lastReason = api == null ? Fallback.NO_VIEWER_DELTA : Fallback.WORLD_CHANGED;
+		if (api != null && event.getChangeType() != IModelChangedEvent.WORLD_CHANGED) {
+			Object delta = toDelta(viewer, parentOf(viewer, event, rowOf), rows(event, rowOf));
+			if (delta != null) {
+				api.apply(viewer, delta);
+				return;
+			}
 		}
+		Fallback reason = lastReason;
+		FALLBACKS[reason.ordinal()]++;
+		LOG.log(Level.FINE, () -> "stock refresh (" + reason + ") for " + viewer.getClass().getSimpleName()); //$NON-NLS-1$ //$NON-NLS-2$
+		viewer.refresh();
 	}
 
 	/**
@@ -135,9 +147,16 @@ public final class M3ModelChangedDeltas {
 	 * @param viewer      the viewer
 	 * @param parent      the input (tables) or an expanded tree element
 	 * @param changedRows rows whose labels may have changed
-	 * @return the delta, or {@code null} when only a refresh reproduces it
+	 * @return the delta (an {@code org.eclipse.jface.viewers.m3.M3ViewerDelta}),
+	 *         or {@code null} when only a refresh reproduces it or the JFace in
+	 *         use has no viewer delta
 	 */
-	public static M3ViewerDelta toDelta(StructuredViewer viewer, Object parent, Object[] changedRows) {
+	public static Object toDelta(StructuredViewer viewer, Object parent, Object[] changedRows) {
+		ViewerDeltaApi api = ViewerDeltaApi.INSTANCE;
+		if (api == null) {
+			lastReason = Fallback.NO_VIEWER_DELTA;
+			return null;
+		}
 		Object[] old = shownRows(viewer, parent);
 		if (old == null) {
 			lastReason = Fallback.ROWS_UNKNOWN;
@@ -151,7 +170,7 @@ public final class M3ModelChangedDeltas {
 		IElementComparer comparer = viewer.getComparer();
 		int[] oldAt = positions(comparer, now, old); // index in now of each old row, -1 when gone
 		boolean[] stable = stable(oldAt);
-		M3ViewerDelta delta = new M3ViewerDelta();
+		Object delta = api.newDelta();
 		boolean[] placed = new boolean[now.length];
 		for (int i = 0; i < old.length; i++) {
 			if (stable[i]) {
@@ -160,21 +179,128 @@ public final class M3ModelChangedDeltas {
 				lastReason = Fallback.MOVE; // remove + insert would drop its selection and expansion
 				return null;
 			} else {
-				delta.remove(old[i]);
+				api.remove(delta, old[i]);
 			}
 		}
 		for (int j = 0; j < now.length; j++) {
 			if (!placed[j]) {
-				delta.add(parent, now[j], viewer.getComparator() != null ? -1 : j);
+				api.add(delta, parent, now[j], viewer.getComparator() != null ? -1 : j);
 			}
 		}
 		for (Object row : changedRows) {
 			int j = indexOf(comparer, now, row);
 			if (j >= 0 && placed[j]) {
-				delta.update(now[j], null);
+				api.update(delta, now[j], null);
 			}
 		}
 		return delta;
+	}
+
+	/**
+	 * The M3 JFace viewer delta API ({@code M3ViewerDelta} add, remove and
+	 * update, and {@code M3Viewers.apply}), bound once through the class loader
+	 * of {@link StructuredViewer}; {@link #INSTANCE} is {@code null} on a JFace
+	 * without {@code org.eclipse.jface.viewers.m3}.
+	 */
+	private static final class ViewerDeltaApi {
+
+		private static final String DELTA_TYPE = "org.eclipse.jface.viewers.m3.M3ViewerDelta"; //$NON-NLS-1$
+		private static final String VIEWERS_TYPE = "org.eclipse.jface.viewers.m3.M3Viewers"; //$NON-NLS-1$
+
+		static final ViewerDeltaApi INSTANCE = bind();
+
+		private final MethodHandle newDelta; // () -> delta
+		private final MethodHandle add; // (delta, parent, element, index), appends in place
+		private final MethodHandle remove; // (delta, element), appends in place
+		private final MethodHandle update; // (delta, element, properties), appends in place
+		private final MethodHandle apply; // (viewer, delta) -> void
+
+		private ViewerDeltaApi(MethodHandle newDelta, MethodHandle add, MethodHandle remove, MethodHandle update,
+				MethodHandle apply) {
+			this.newDelta = newDelta;
+			this.add = add;
+			this.remove = remove;
+			this.update = update;
+			this.apply = apply;
+		}
+
+		private static ViewerDeltaApi bind() {
+			try {
+				ClassLoader loader = StructuredViewer.class.getClassLoader();
+				Class<?> deltaType = Class.forName(DELTA_TYPE, false, loader);
+				Class<?> viewersType = Class.forName(VIEWERS_TYPE, false, loader);
+				MethodHandles.Lookup lookup = MethodHandles.publicLookup();
+				MethodHandle newDelta = lookup.findConstructor(deltaType, MethodType.methodType(void.class))
+						.asType(MethodType.methodType(Object.class));
+				MethodHandle add = lookup.findVirtual(deltaType, "add", //$NON-NLS-1$
+						MethodType.methodType(deltaType, Object.class, Object.class, int.class))
+						.asType(MethodType.methodType(void.class, Object.class, Object.class, Object.class, int.class));
+				MethodHandle remove = lookup.findVirtual(deltaType, "remove", //$NON-NLS-1$
+						MethodType.methodType(deltaType, Object.class))
+						.asType(MethodType.methodType(void.class, Object.class, Object.class));
+				MethodHandle update = lookup.findVirtual(deltaType, "update", //$NON-NLS-1$
+						MethodType.methodType(deltaType, Object.class, String[].class))
+						.asType(MethodType.methodType(void.class, Object.class, Object.class, String[].class));
+				MethodHandle apply = lookup.findStatic(viewersType, "apply", //$NON-NLS-1$
+						MethodType.methodType(void.class, StructuredViewer.class, deltaType))
+						.asType(MethodType.methodType(void.class, StructuredViewer.class, Object.class));
+				return new ViewerDeltaApi(newDelta, add, remove, update, apply);
+			} catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | LinkageError e) {
+				LOG.log(Level.FINE, "no M3 viewer delta in this JFace; model events keep the stock refresh", e); //$NON-NLS-1$
+				return null;
+			}
+		}
+
+		Object newDelta() {
+			try {
+				return newDelta.invokeExact(); // symbolic type ()Object, matching the adapted handle
+			} catch (Throwable t) {
+				throw unchecked(t);
+			}
+		}
+
+		void add(Object delta, Object parent, Object element, int index) {
+			try {
+				add.invokeExact(delta, parent, element, index);
+			} catch (Throwable t) {
+				throw unchecked(t);
+			}
+		}
+
+		void remove(Object delta, Object element) {
+			try {
+				remove.invokeExact(delta, element);
+			} catch (Throwable t) {
+				throw unchecked(t);
+			}
+		}
+
+		void update(Object delta, Object element, String[] properties) {
+			try {
+				update.invokeExact(delta, element, properties);
+			} catch (Throwable t) {
+				throw unchecked(t);
+			}
+		}
+
+		void apply(StructuredViewer viewer, Object delta) {
+			try {
+				apply.invokeExact(viewer, delta);
+			} catch (Throwable t) {
+				throw unchecked(t);
+			}
+		}
+
+		/* the delta API throws only unchecked exceptions; rethrow them unchanged */
+		private static RuntimeException unchecked(Throwable t) {
+			if (t instanceof RuntimeException e) {
+				return e;
+			}
+			if (t instanceof Error e) {
+				throw e;
+			}
+			return new IllegalStateException(t);
+		}
 	}
 
 	/* rows of the changed objects, in event order */
