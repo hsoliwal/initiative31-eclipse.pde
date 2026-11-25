@@ -140,6 +140,15 @@ public final class M3ModelChangedDeltas {
 	}
 
 	/**
+	 * @return whether the JFace in use provides the
+	 *         {@code org.eclipse.jface.viewers.m3} viewer delta; without it
+	 *         every model event keeps the stock refresh and no delta is applied
+	 */
+	public static boolean viewerDeltaAvailable() {
+		return ViewerDeltaApi.INSTANCE != null;
+	}
+
+	/**
 	 * The delta that turns the rows shown under {@code parent} into the rows a
 	 * refresh of {@code parent} would show, updating the labels of
 	 * {@code changedRows} that stay.

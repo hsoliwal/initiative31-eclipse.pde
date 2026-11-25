@@ -59,10 +59,15 @@ import org.eclipse.swt.widgets.TreeItem;
  * expanded children) variants.
  * <p>
  * Usage: {@code M3ModelChangedDeltasDifferential <out-file> <seeds> <steps>};
- * exit code 1 on any mismatch.
+ * exit code 1 on any mismatch, {@value #UNAVAILABLE} when the JFace in use has
+ * no {@code org.eclipse.jface.viewers.m3} viewer delta: the adapter then
+ * answers every event with the stock refresh, so no delta could be compared.
  * </p>
  */
 public final class M3ModelChangedDeltasDifferential {
+
+	/** Exit code when the M3 JFace viewer delta is not bound and no delta was compared. */
+	public static final int UNAVAILABLE = 2;
 
 	/** A model object of a section: identity, a mutable label, children for the tree variant. */
 	static final class Row {
@@ -159,6 +164,25 @@ public final class M3ModelChangedDeltasDifferential {
 	}
 
 	public static void main(String[] args) throws IOException {
+		System.exit(execute(args));
+	}
+
+	/**
+	 * Runs the differential.
+	 *
+	 * @param args {@code <out-file> <seeds> <steps>}
+	 * @return 0 when every step matched without unexpected full refreshes, 1 on
+	 *         any mismatch or unexpected full refresh, {@link #UNAVAILABLE} when
+	 *         the JFace in use has no M3 viewer delta
+	 * @throws IOException if the report cannot be written
+	 */
+	public static int execute(String[] args) throws IOException {
+		if (!M3ModelChangedDeltas.viewerDeltaAvailable()) {
+			String line = "UNAVAILABLE\torg.eclipse.jface.viewers.m3 viewer delta is not in this JFace; no delta was compared\n"; //$NON-NLS-1$
+			Files.writeString(Path.of(args[0]), line, StandardCharsets.UTF_8);
+			System.out.print(line);
+			return UNAVAILABLE;
+		}
 		Display display = new Display();
 		int mismatches = 0;
 		long expectedFallbacks = 0;
@@ -183,7 +207,7 @@ public final class M3ModelChangedDeltasDifferential {
 		} finally {
 			display.dispose();
 		}
-		System.exit(mismatches == 0 && unexpectedFull == 0 ? 0 : 1);
+		return mismatches == 0 && unexpectedFull == 0 ? 0 : 1;
 	}
 
 	static long[] run(Display display, Writer w, long seed, boolean tree, int steps) throws IOException {
@@ -286,10 +310,14 @@ public final class M3ModelChangedDeltasDifferential {
 				continue;
 			}
 			long fallbacksBefore = M3ModelChangedDeltas.fallbacks();
+			long unboundBefore = M3ModelChangedDeltas.fallbacks(M3ModelChangedDeltas.Fallback.NO_VIEWER_DELTA);
 			int refreshesBefore = fullRefreshes(ours);
 			stock.refresh();
 			M3ModelChangedDeltas.refresh(ours, event, o -> o);
-			long fell = M3ModelChangedDeltas.fallbacks() - fallbacksBefore;
+			// A refresh for want of the viewer delta is never an expected fallback:
+			// leaving it out of expected reports it as an unexpected full refresh.
+			long fell = M3ModelChangedDeltas.fallbacks() - fallbacksBefore
+					- (M3ModelChangedDeltas.fallbacks(M3ModelChangedDeltas.Fallback.NO_VIEWER_DELTA) - unboundBefore);
 			full += fullRefreshes(ours) - refreshesBefore;
 			expected += fell;
 			if (fallbackExpected && fell == 0) {
